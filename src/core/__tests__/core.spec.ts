@@ -47,10 +47,10 @@ describe('modesFor', () => {
     expect(modes[0].id).toBe('bytes');
   });
 
-  it('shows only modes whose engine is registered', async () => {
+    it('shows only modes whose engine is registered', async () => {
     const d = await detectFile(file('report.pdf', '%PDF-1.4'));
-    // pdf-pages has no engine yet, so it is hidden until it is registered.
-    expect(modesFor(d).map((m) => m.id)).toEqual(['bytes']);
+    // Only engines that are registered in index.ts appear here.
+    expect(modesFor(d).map((m) => m.id)).toEqual(['bytes', 'pdf-pages']);
   });
 });
 
