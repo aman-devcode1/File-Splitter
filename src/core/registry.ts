@@ -33,7 +33,7 @@ export interface SplitEngine {
 }
 
 const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
-const TEXT_LINE_KINDS = ['text', 'csv', 'json', 'yaml', 'xml', 'sql', 'subtitle', 'html', 'code'];
+const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_TILE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
@@ -64,7 +64,7 @@ export const MODES: readonly ModeDefinition[] = [
     engine: 'zip-entries',
     input: 'count',
     defaultValue: '5',
-    appliesTo: (k) => ZIP_ENTRY_KINDS.includes(k.id),
+    appliesTo: (k) => k.id === 'zip',
   },
   {
     id: 'docx-paragraphs',
