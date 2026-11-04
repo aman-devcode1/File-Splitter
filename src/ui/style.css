@@ -1,0 +1,139 @@
+:root {
+    color-scheme: light;
+    font-family: system-ui, sans-serif;
+    color: #14131a;
+    background: #faf9f6;
+}
+
+body {
+    margin: 0;
+}
+
+.container {
+    max-width: 44rem;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+h1 {
+    color: #4338ca;
+    margin-bottom: 0.25rem;
+}
+
+.muted {
+    color: #5e5c68;
+}
+
+.small {
+    font-size: 0.875rem;
+}
+
+.dropzone {
+    border: 2px dashed #d2cfc6;
+    border-radius: 1rem;
+    padding: 2.5rem 1rem;
+    text-align: center;
+    background: #fff;
+    margin: 1.5rem 0;
+}
+
+.dropzone.dragging {
+    border-color: #4338ca;
+    background: #eef0ff;
+}
+
+.link {
+    color: #4338ca;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.meta {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0 0 1rem;
+}
+
+.meta div {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.meta dt {
+    color: #5e5c68;
+    min-width: 9rem;
+}
+
+.meta dd {
+    margin: 0;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+select,
+input[type="text"] {
+    font: inherit;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d2cfc6;
+    border-radius: 0.6rem;
+    background: #fff;
+}
+
+select {
+    width: 100%;
+    margin: 0.4rem 0 0.75rem;
+}
+
+.row {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.row input {
+    flex: 1;
+}
+
+.row select {
+    width: auto;
+    margin: 0;
+}
+
+.btn {
+    font: inherit;
+    padding: 0.6rem 1.3rem;
+    border-radius: 999px;
+    border: 0;
+    background: #4338ca;
+    color: #fff;
+    cursor: pointer;
+    margin: 0.75rem 0.5rem 0 0;
+}
+
+.btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.btn.ghost {
+    background: #fff;
+    color: #4338ca;
+    border: 1px solid #d2cfc6;
+}
+
+.error {
+    color: #a12626;
+    min-height: 1.2rem;
+}
+
+.parts {
+    list-style: none;
+    padding: 0;
+}
+
+.parts li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid #e8e6df;
+}

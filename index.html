@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>File Splitter</title>
+    <link rel="stylesheet" href="/src/ui/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>File Splitter</h1>
+      <p class="muted">Your file is read in your browser. Nothing is uploaded.</p>
+
+      <section id="drop" class="dropzone" tabindex="0">
+        <p><strong>Drop a file here</strong> or <label class="link">choose one<input id="picker" type="file" hidden /></label></p>
+      </section>
+
+      <section id="details" hidden>
+        <dl class="meta">
+          <div><dt>File</dt><dd id="fname"></dd></div>
+          <div><dt>Size</dt><dd id="fsize"></dd></div>
+          <div><dt>Detected type</dt><dd id="ftype"></dd></div>
+        </dl>
+
+        <label for="mode">How to split</label>
+        <select id="mode"></select>
+        <p id="modeHelp" class="muted small"></p>
+
+        <div id="inputRow" class="row">
+          <input id="value" type="text" inputmode="decimal" autocomplete="off" />
+          <select id="unit" hidden>
+            <option value="B">B</option>
+            <option value="KB">KB</option>
+            <option value="MB">MB</option>
+            <option value="GB">GB</option>
+            <option value="KiB">KiB</option>
+            <option value="MiB">MiB</option>
+            <option value="GiB">GiB</option>
+          </select>
+        </div>
+        <p id="inputHelp" class="muted small"></p>
+        <p id="estimate" class="muted small"></p>
+        <p id="error" class="error" role="alert"></p>
+
+        <button id="split" class="btn" type="button">Split file</button>
+        <button id="reset" class="btn ghost" type="button">Reset</button>
+      </section>
+
+      <section id="result" hidden>
+        <h2>Parts</h2>
+        <p id="summary" class="muted small"></p>
+        <ul id="parts" class="parts"></ul>
+      </section>
+    </main>
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>
