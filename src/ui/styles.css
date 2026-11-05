@@ -2245,3 +2245,7 @@ details[open]>summary::after {
     height: 1.75rem;
   }
 }
+
+[hidden] {
+  display: none !important;
+}

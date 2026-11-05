@@ -43,6 +43,7 @@ const els = {
     result: $<HTMLElement>('result'),
     summary: $<HTMLElement>('summary'),
     partRows: $<HTMLElement>('partRows'),
+    unitField: $<HTMLElement>('unitField'),
 };
 
 let file: File | null = null;
@@ -54,11 +55,11 @@ let total: number | null = null;
 let modeRun = 0;
 
 const nounFor: Record<string, string> = {
-  'pdf-pages': 'pages',
-  'zip-entries': 'files',
-  'text-lines': 'lines',
-  'docx-paragraphs': 'paragraphs',
-  'xlsx-rows': 'rows',
+    'pdf-pages': 'pages',
+    'zip-entries': 'files',
+    'text-lines': 'lines',
+    'docx-paragraphs': 'paragraphs',
+    'xlsx-rows': 'rows',
 };
 
 function fmt(bytes: number): string {
@@ -120,82 +121,85 @@ function currentMode(): ModeDefinition | undefined {
 }
 
 function renderModes(): void {
-  els.mode.innerHTML = '';
-  for (const m of modes) {
-    const opt = document.createElement('option');
-    opt.value = m.id;
-    opt.textContent = m.label;
-    els.mode.appendChild(opt);
-  }
-  void onModeChanged();
+    els.mode.innerHTML = '';
+    for (const m of modes) {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.textContent = m.label;
+        els.mode.appendChild(opt);
+    }
+    void onModeChanged();
 }
 
 /** Loads the total for the chosen mode (if it counts items), then redraws the input. */
 async function onModeChanged(): Promise<void> {
-  const run = ++modeRun;
-  total = null;
-  const mode = currentMode();
-  if (mode && file && mode.input === 'count') {
-    try {
-      total = await itemTotal(mode, file);
-    } catch {
-      total = null;
+    const run = ++modeRun;
+    total = null;
+    const mode = currentMode();
+    if (mode && file && mode.input === 'count') {
+        try {
+            total = await itemTotal(mode, file);
+        } catch {
+            total = null;
+        }
     }
-  }
-  if (run !== modeRun) return;
-  renderInput();
+    if (run !== modeRun) return;
+    renderInput();
 }
 
 function renderInput(): void {
-  const mode = currentMode();
-  if (!mode) return;
+    const mode = currentMode();
+    if (!mode) return;
 
-  els.modeHelp.textContent = mode.help;
-  els.unit.hidden = mode.input !== 'bytes';
-  if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
+    els.modeHelp.textContent = mode.help;
+    els.unitField.hidden = mode.input !== 'bytes';
+    if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
 
-  const labels = { bytes: 'Part size', count: 'Items per part', seconds: 'Seconds per clip' } as const;
-  els.valueLabel.textContent = labels[mode.input];
+    const labels = { bytes: 'Part size', count: 'Items per part', seconds: 'Seconds per clip' } as const;
+    els.valueLabel.textContent = labels[mode.input];
 
-  if (mode.input === 'count' && total !== null) {
-    const noun = nounFor[mode.engine] ?? 'items';
-    els.value.value = String(Math.min(Number(mode.defaultValue), total));
-    els.inputHelp.textContent = `This file has ${total} ${noun} in total. Enter 1 to ${total}.`;
-  } else {
-    els.value.value = mode.defaultValue;
-    const hints = {
-      bytes: 'Part size, for example 10 MB or 2.5 GB.',
-      count: 'How many items go into each part, for example 10.',
-      seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
-    } as const;
-    els.inputHelp.textContent = hints[mode.input];
-  }
+    if (mode.input === 'count' && total !== null) {
+        const noun = nounFor[mode.engine] ?? 'items';
+        els.value.value = String(Math.min(Number(mode.defaultValue), total));
+        els.inputHelp.textContent = `This file has ${total} ${noun} in total. Enter 1 to ${total}.`;
+    } else {
+        els.value.value = mode.defaultValue;
+        const hints = {
+            bytes: 'Part size, for example 10 MB or 2.5 GB.',
+            count: 'How many items go into each part, for example 10.',
+            seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
+        } as const;
+        els.inputHelp.textContent = hints[mode.input];
+    }
 
-  renderPresets(mode);
-  setError('');
-  updateEstimate();
+    renderPresets(mode);
+    setError('');
+    updateEstimate();
 }
 
 function updateEstimate(): void {
-  const mode = currentMode();
-  if (!file || !mode) {
-    els.estimate.textContent = '';
-    return;
-  }
-  const time = describeEstimate(estimateSeconds(mode.engine, file.size));
-  let parts = '';
-  if (mode.input === 'count' && total !== null) {
-    const v = validate();
-    if (v.ok) parts = `This will create ${Math.ceil(total / v.value)} parts. `;
-  }
-  els.estimate.textContent = `${parts}Estimated time: ${time} (depends on your device).`;
+    const mode = currentMode();
+    if (!file || !mode) {
+        els.estimate.textContent = '';
+        return;
+    }
+    const time = describeEstimate(estimateSeconds(mode.engine, file.size));
+    let parts = '';
+    if (mode.input === 'count' && total !== null) {
+        const v = validate();
+        if (v.ok) {
+            const n = Math.ceil(total / v.value);
+            parts = `This will create ${n} ${n === 1 ? 'part' : 'parts'}. `;
+        }
+    }
+    els.estimate.textContent = `${parts}Estimated time: ${time} (depends on your device).`;
 }
 
 function validate(): { ok: true; value: number } | { ok: false; error: string } {
-  const mode = currentMode();
-  if (!mode) return { ok: false, error: 'Choose a split mode.' };
-  const r = parseModeInput(mode, els.value.value, els.unit.value as ByteUnit, total ?? undefined);
-  return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
+    const mode = currentMode();
+    if (!mode) return { ok: false, error: 'Choose a split mode.' };
+    const r = parseModeInput(mode, els.value.value, els.unit.value as ByteUnit, total ?? undefined);
+    return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
 }
 
 async function loadFile(f: File): Promise<void> {
@@ -252,7 +256,8 @@ function renderParts(parts: SplitPart[]): void {
     clearResult();
     els.result.hidden = false;
     const total = parts.reduce((s, p) => s + p.blob.size, 0);
-    els.summary.textContent = `${parts.length} parts, ${fmt(total)} in total. Nothing was uploaded.`;
+    const word = parts.length === 1 ? 'part' : 'parts';
+    els.summary.textContent = `${parts.length} ${word}, ${fmt(total)} in total. Nothing was uploaded.`;
 
     for (const p of parts) {
         const url = URL.createObjectURL(p.blob);
