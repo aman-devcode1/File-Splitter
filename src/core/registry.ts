@@ -33,7 +33,7 @@ export interface SplitEngine {
 }
 
 const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
-const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf'];
+const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf', 'png', 'jpeg', 'webp', 'gif', 'bmp'];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_TILE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
 
@@ -55,7 +55,7 @@ export const MODES: readonly ModeDefinition[] = [
     help: 'Each part is a complete PDF with this many pages.',
     engine: 'pdf-pages',
     input: 'count',
-    defaultValue: '10',
+    defaultValue: '1',
     appliesTo: (k) => k.id === 'pdf',
   },
   {
@@ -85,13 +85,13 @@ export const MODES: readonly ModeDefinition[] = [
     defaultValue: '1000',
     appliesTo: (k) => k.id === 'xlsx',
   },
-  {
+    {
     id: 'image-tiles',
     label: 'Into tiles',
     help: 'Splits the image into this many vertical slices. Each slice is a separate image.',
     engine: 'image-tiles',
     input: 'count',
-    defaultValue: '4',
+    defaultValue: '1',
     appliesTo: (k) => IMAGE_TILE_KINDS.includes(k.id),
   },
   {

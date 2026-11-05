@@ -5,10 +5,10 @@ import {
     splitFile,
     estimateSeconds,
     describeEstimate,
+    itemTotal,
     type DetectedFile,
     type ModeDefinition,
     type SplitPart,
-    itemTotal,
 } from '../core';
 import type { ByteUnit } from '../core/split/byte-split';
 import './styles.css';
@@ -32,6 +32,7 @@ const els = {
     value: $<HTMLInputElement>('value'),
     valueLabel: $<HTMLElement>('valueLabel'),
     unit: $<HTMLSelectElement>('unit'),
+    unitField: $<HTMLElement>('unitField'),
     inputHelp: $<HTMLElement>('inputHelp'),
     presets: $<HTMLElement>('presets'),
     error: $<HTMLElement>('error'),
@@ -43,24 +44,57 @@ const els = {
     result: $<HTMLElement>('result'),
     summary: $<HTMLElement>('summary'),
     partRows: $<HTMLElement>('partRows'),
-    unitField: $<HTMLElement>('unitField'),
 };
+
+interface Preset {
+    readonly label: string;
+    readonly value: string;
+    readonly unit?: ByteUnit;
+}
+
+/** Count modes: the noun and label shown to the user. */
+const countInfo: Record<string, { label: string; noun: string }> = {
+    'pdf-pages': { label: 'Pages per part', noun: 'pages' },
+    'zip-entries': { label: 'Files per part', noun: 'files' },
+    'text-lines': { label: 'Lines per part', noun: 'lines' },
+    'docx-paragraphs': { label: 'Paragraphs per part', noun: 'paragraphs' },
+    'xlsx-rows': { label: 'Rows per part', noun: 'rows' },
+    'image-tiles': { label: 'Number of tiles', noun: 'tiles' },
+};
+
+const HINTS = {
+    bytes: 'Part size, for example 10 MB or 2.5 GB.',
+    count: 'How many items go into each part, for example 10.',
+    seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
+} as const;
+
+const BYTE_PRESETS: Preset[] = [
+    { label: '1 MB', value: '1', unit: 'MB' },
+    { label: '10 MB', value: '10', unit: 'MB' },
+    { label: '100 MB', value: '100', unit: 'MB' },
+    { label: '1 GB', value: '1', unit: 'GB' },
+];
+
+const TIME_PRESETS: Preset[] = [
+    { label: '30 sec', value: '30' },
+    { label: '1 min', value: '60' },
+    { label: '5 min', value: '300' },
+    { label: '10 min', value: '600' },
+];
+
+/** Asks before creating a very large number of files. */
+const CONFIRM_ABOVE_PARTS = 10_000;
+const WARN_ABOVE_PARTS = 500;
 
 let file: File | null = null;
 let detected: DetectedFile | null = null;
 let modes: ModeDefinition[] = [];
-let runId = 0;
 let urls: string[] = [];
+/** Items in the file for the current count mode (pages, lines, pixels wide...). null while loading. */
 let total: number | null = null;
+/** Changes on every mode change or file change, so a late itemTotal result is ignored. */
 let modeRun = 0;
-
-const nounFor: Record<string, string> = {
-    'pdf-pages': 'pages',
-    'zip-entries': 'files',
-    'text-lines': 'lines',
-    'docx-paragraphs': 'paragraphs',
-    'xlsx-rows': 'rows',
-};
+let runId = 0;
 
 function fmt(bytes: number): string {
     if (bytes < 1000) return `${bytes} B`;
@@ -83,25 +117,38 @@ function clearResult(): void {
     els.partRows.innerHTML = '';
 }
 
-const presetsByMode: Record<string, { label: string; value: string; unit?: ByteUnit }[]> = {
-    bytes: [
-        { label: '1 MB', value: '1', unit: 'MB' },
-        { label: '10 MB', value: '10', unit: 'MB' },
-        { label: '100 MB', value: '100', unit: 'MB' },
-        { label: '1 GB', value: '1', unit: 'GB' },
-    ],
-    'media-time': [
-        { label: '30 sec', value: '30' },
-        { label: '1 min', value: '60' },
-        { label: '5 min', value: '300' },
-        { label: '10 min', value: '600' },
-    ],
-};
+function currentMode(): ModeDefinition | undefined {
+    return modes.find((m) => m.id === els.mode.value);
+}
+
+function totalHelp(mode: ModeDefinition, n: number): string {
+    if (mode.engine === 'image-tiles') {
+        return `This image is ${n} pixels wide, so you can make 1 to ${n} tiles.`;
+    }
+    const noun = countInfo[mode.engine]?.noun ?? 'items';
+    return `This file has ${n} ${noun} in total. Enter 1 to ${n}.`;
+}
+
+/** Quick options for the chosen mode. Count modes get options relative to the file total. */
+function presetsFor(mode: ModeDefinition): Preset[] {
+    if (mode.input === 'bytes') return BYTE_PRESETS;
+    if (mode.input === 'seconds') return TIME_PRESETS;
+    if (mode.input === 'count' && total !== null) {
+        const half = Math.max(1, Math.ceil(total / 2));
+        const all = [
+            { label: '1', value: '1' },
+            { label: 'Half', value: String(half) },
+            { label: 'All', value: String(total) },
+        ];
+        // Remove duplicates, for example when the file has only 1 or 2 items.
+        return all.filter((p, i, arr) => arr.findIndex((q) => q.value === p.value) === i);
+    }
+    return [];
+}
 
 function renderPresets(mode: ModeDefinition): void {
     els.presets.innerHTML = '';
-    const list = presetsByMode[mode.id] ?? [];
-    for (const p of list) {
+    for (const p of presetsFor(mode)) {
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'chip';
@@ -116,10 +163,6 @@ function renderPresets(mode: ModeDefinition): void {
     }
 }
 
-function currentMode(): ModeDefinition | undefined {
-    return modes.find((m) => m.id === els.mode.value);
-}
-
 function renderModes(): void {
     els.mode.innerHTML = '';
     for (const m of modes) {
@@ -131,19 +174,22 @@ function renderModes(): void {
     void onModeChanged();
 }
 
-/** Loads the total for the chosen mode (if it counts items), then redraws the input. */
+/** Loads the item total for a count mode, then redraws the input. Late results are ignored. */
 async function onModeChanged(): Promise<void> {
     const run = ++modeRun;
     total = null;
     const mode = currentMode();
     if (mode && file && mode.input === 'count') {
+        const f = file;
+        let t: number | null = null;
         try {
-            total = await itemTotal(mode, file);
+            t = await itemTotal(mode, f);
         } catch {
-            total = null;
+            t = null;
         }
+        if (run !== modeRun || f !== file) return;
+        total = t;
     }
-    if (run !== modeRun) return;
     renderInput();
 }
 
@@ -155,44 +201,25 @@ function renderInput(): void {
     els.unitField.hidden = mode.input !== 'bytes';
     if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
 
-    const labels = { bytes: 'Part size', count: 'Items per part', seconds: 'Seconds per clip' } as const;
-    els.valueLabel.textContent = labels[mode.input];
+    if (mode.input === 'bytes') {
+        els.valueLabel.textContent = 'Part size';
+    } else if (mode.input === 'seconds') {
+        els.valueLabel.textContent = 'Seconds per clip';
+    } else {
+        els.valueLabel.textContent = countInfo[mode.engine]?.label ?? 'Items per part';
+    }
 
     if (mode.input === 'count' && total !== null) {
-        const noun = nounFor[mode.engine] ?? 'items';
-        els.value.value = String(Math.min(Number(mode.defaultValue), total));
-        els.inputHelp.textContent = `This file has ${total} ${noun} in total. Enter 1 to ${total}.`;
+        els.value.value = '1';
+        els.inputHelp.textContent = totalHelp(mode, total);
     } else {
         els.value.value = mode.defaultValue;
-        const hints = {
-            bytes: 'Part size, for example 10 MB or 2.5 GB.',
-            count: 'How many items go into each part, for example 10.',
-            seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
-        } as const;
-        els.inputHelp.textContent = hints[mode.input];
+        els.inputHelp.textContent = HINTS[mode.input];
     }
 
     renderPresets(mode);
     setError('');
     updateEstimate();
-}
-
-function updateEstimate(): void {
-    const mode = currentMode();
-    if (!file || !mode) {
-        els.estimate.textContent = '';
-        return;
-    }
-    const time = describeEstimate(estimateSeconds(mode.engine, file.size));
-    let parts = '';
-    if (mode.input === 'count' && total !== null) {
-        const v = validate();
-        if (v.ok) {
-            const n = Math.ceil(total / v.value);
-            parts = `This will create ${n} ${n === 1 ? 'part' : 'parts'}. `;
-        }
-    }
-    els.estimate.textContent = `${parts}Estimated time: ${time} (depends on your device).`;
 }
 
 function validate(): { ok: true; value: number } | { ok: false; error: string } {
@@ -202,9 +229,47 @@ function validate(): { ok: true; value: number } | { ok: false; error: string } 
     return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
 }
 
+/** How many parts a valid value will create, or null if it cannot be known yet. */
+function partCountFor(mode: ModeDefinition, value: number): number | null {
+    if (!file) return null;
+    if (mode.input === 'bytes') return Math.ceil(file.size / value);
+    if (mode.engine === 'image-tiles') return total === null ? null : Math.min(value, total);
+    if (mode.input === 'count' && total !== null) return Math.ceil(total / value);
+    return null;
+}
+
+function updateEstimate(): void {
+    const mode = currentMode();
+    if (!file || !mode) {
+        els.estimate.textContent = '';
+        return;
+    }
+
+    if (file.size === 0) {
+        els.estimate.textContent = 'This file is empty, so there is nothing to split.';
+        return;
+    }
+
+    const time = describeEstimate(estimateSeconds(mode.engine, file.size));
+    let partsText = '';
+    const v = validate();
+    if (v.ok) {
+        const n = partCountFor(mode, v.value);
+        if (n !== null) {
+            partsText = `This will create ${n} ${n === 1 ? 'part' : 'parts'}. `;
+            if (n > WARN_ABOVE_PARTS) partsText += 'That is a lot of files, so consider a larger value. ';
+        }
+    }
+    els.estimate.textContent = `${partsText}Estimated time: ${time} (depends on your device).`;
+}
+
 async function loadFile(f: File): Promise<void> {
     const id = ++runId;
+    modeRun++;
     file = f;
+    detected = null;
+    modes = [];
+    total = null;
     clearResult();
     setError('');
     els.fname.textContent = f.name;
@@ -232,6 +297,14 @@ async function doSplit(): Promise<void> {
         return;
     }
 
+    const n = partCountFor(mode, v.value);
+    if (n !== null && n > CONFIRM_ABOVE_PARTS) {
+        const ok = window.confirm(
+            `This will create ${n.toLocaleString('en-US')} parts. That can take a long time and fill your disk. Continue?`,
+        );
+        if (!ok) return;
+    }
+
     const id = runId;
     els.splitBtn.disabled = true;
     els.progress.textContent = `Splitting... ${describeEstimate(estimateSeconds(mode.engine, file.size))} expected.`;
@@ -255,9 +328,9 @@ async function doSplit(): Promise<void> {
 function renderParts(parts: SplitPart[]): void {
     clearResult();
     els.result.hidden = false;
-    const total = parts.reduce((s, p) => s + p.blob.size, 0);
+    const totalBytes = parts.reduce((s, p) => s + p.blob.size, 0);
     const word = parts.length === 1 ? 'part' : 'parts';
-    els.summary.textContent = `${parts.length} ${word}, ${fmt(total)} in total. Nothing was uploaded.`;
+    els.summary.textContent = `${parts.length} ${word}, ${fmt(totalBytes)} in total. Nothing was uploaded.`;
 
     for (const p of parts) {
         const url = URL.createObjectURL(p.blob);
@@ -283,11 +356,16 @@ function renderParts(parts: SplitPart[]): void {
 
 function reset(): void {
     runId++;
+    modeRun++;
     file = null;
     detected = null;
     modes = [];
     total = null;
     clearResult();
+    els.mode.innerHTML = '';
+    els.presets.innerHTML = '';
+    els.estimate.textContent = '';
+    els.progress.textContent = '';
     els.fileinfo.hidden = true;
     els.setup.hidden = true;
     els.split.hidden = true;
@@ -317,6 +395,9 @@ els.value.addEventListener('input', () => {
     setError('');
     updateEstimate();
 });
-els.unit.addEventListener('change', () => setError(''));
+els.unit.addEventListener('change', () => {
+    setError('');
+    updateEstimate();
+});
 els.splitBtn.addEventListener('click', () => void doSplit());
 els.reset.addEventListener('click', reset);
