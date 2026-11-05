@@ -11,6 +11,7 @@ import { countZipEntries } from './split/zip-entries';
 import { countLines } from './split/text-lines';
 import { countParagraphs } from './split/docx-paragraphs';
 import { countRows } from './split/xlsx-rows';
+import { countTiles, imageTilesEngine } from './split/image-tiles';
 
 // Each engine is registered once. A mode shows up only when its engine is registered.
 registerEngine({
@@ -43,11 +44,19 @@ registerEngine({
   split: (file, detected, rowsPerPart) => xlsxRowsEngine.split(file, detected, rowsPerPart),
 } satisfies SplitEngine);
 
+registerEngine({
+  id: 'image-tiles',
+  split: (file, detected, tiles) => imageTilesEngine.split(file, detected, tiles),
+} satisfies SplitEngine);
+
+
 registerCounter('pdf-pages', countPdfPages);
 registerCounter('zip-entries', countZipEntries);
 registerCounter('text-lines', countLines);
 registerCounter('docx-paragraphs', countParagraphs);
 registerCounter('xlsx-rows', countRows);
+registerCounter('image-tiles', countTiles);
+
 
 export * from './types';
 export * from './detect/detect';
@@ -59,3 +68,4 @@ export * from './split/text-lines';
 export * from './split/docx-paragraphs';
 export * from './split/xlsx-rows';
 export * from './estimate';
+export * from './split/image-tiles';
