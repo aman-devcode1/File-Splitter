@@ -33,6 +33,7 @@ export interface SplitEngine {
 }
 
 const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
+const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf'];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_TILE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
 
@@ -121,13 +122,20 @@ export function registerEngine(engine: SplitEngine): void {
 
 /**
  * Modes to show for a file. A mode appears only when its engine is registered.
- * Byte split is always registered, so there is always at least one mode.
+ * For formats where byte parts do not open, byte split is hidden once a structure mode exists.
+ * Every file still gets at least one mode.
  */
 export function modesFor(detected: DetectedFile): ModeDefinition[] {
-  return MODES.filter((m) => m.appliesTo(detected.kind) && engines.has(m.engine));
+  const available = MODES.filter((m) => m.appliesTo(detected.kind) && engines.has(m.engine));
+  const structured = available.filter((m) => m.id !== 'bytes');
+
+  if (structured.length > 0 && BYTE_UNUSABLE_KINDS.includes(detected.kind.id)) {
+    return structured;
+  }
+  return available;
 }
 
-/** Validates what the user typed for a mode. */
+/** validates what the user typed for a mode. */
 export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUnit): Result<number> {
   if (mode.input === 'bytes') {
     return toBytes(text, unit ?? mode.defaultUnit ?? 'MB');

@@ -47,10 +47,14 @@ describe('modesFor', () => {
     expect(modes[0].id).toBe('bytes');
   });
 
-    it('shows only modes whose engine is registered', async () => {
+      it('shows only structure modes for PDF, without byte split', async () => {
     const d = await detectFile(file('report.pdf', '%PDF-1.4'));
-    // Only engines that are registered in index.ts appear here.
-    expect(modesFor(d).map((m) => m.id)).toEqual(['bytes', 'pdf-pages']);
+    expect(modesFor(d).map((m) => m.id)).toEqual(['pdf-pages']);
+  });
+
+  it('keeps byte split for text, because text parts stay readable', async () => {
+    const d = await detectFile(file('notes.txt', 'hello world'));
+    expect(modesFor(d).map((m) => m.id)).toContain('bytes');
   });
 });
 

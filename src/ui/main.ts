@@ -10,10 +10,9 @@ import {
     type SplitPart,
 } from '../core';
 import type { ByteUnit } from '../core/split/byte-split';
+import './styles.css';
 
-// @ts-ignore -- CSS imports are resolved by the bundler.
 import '@fontsource/philosopher/400.css';
-// @ts-ignore -- CSS imports are resolved by the bundler.
 import '@fontsource/philosopher/700.css';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;

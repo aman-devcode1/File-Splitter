@@ -30,10 +30,10 @@ describe('planPages', () => {
 });
 
 describe('pdf-pages engine', () => {
-  it('is offered for PDF files', async () => {
+    it('is offered for PDF files, and byte split is hidden', async () => {
     const f = await makePdf(3);
     const d = await detectFile(f);
-    expect(modesFor(d).map((m) => m.id)).toEqual(['bytes', 'pdf-pages']);
+    expect(modesFor(d).map((m) => m.id)).toEqual(['pdf-pages']);
   });
 
   it('splits 25 pages into 10, 10 and 5 page PDFs with _PART names', async () => {
