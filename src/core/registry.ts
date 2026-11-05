@@ -116,6 +116,24 @@ export const MODES: readonly ModeDefinition[] = [
 
 const engines = new Map<EngineId, SplitEngine>();
 
+export type ItemCounter = (file: File) => Promise<number>;
+
+const counters = new Map<EngineId, ItemCounter>();
+
+export function registerCounter(engine: EngineId, counter: ItemCounter): void {
+  counters.set(engine, counter);
+}
+
+/**
+ * Total items for a count mode (pages, files, lines, paragraphs, rows).
+ * Returns null for byte and seconds modes, or when no counter is registered.
+ */
+export async function itemTotal(mode: ModeDefinition, file: File): Promise<number | null> {
+  if (mode.input !== 'count') return null;
+  const counter = counters.get(mode.engine);
+  return counter ? counter(file) : null;
+}
+
 export function registerEngine(engine: SplitEngine): void {
   engines.set(engine.id, engine);
 }
@@ -136,7 +154,12 @@ export function modesFor(detected: DetectedFile): ModeDefinition[] {
 }
 
 /** validates what the user typed for a mode. */
-export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUnit): Result<number> {
+export function parseModeInput(
+  mode: ModeDefinition,
+  text: string,
+  unit?: ByteUnit,
+  max?: number,
+): Result<number> {
   if (mode.input === 'bytes') {
     return toBytes(text, unit ?? mode.defaultUnit ?? 'MB');
   }
@@ -145,6 +168,9 @@ export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUn
   }
   const n = Number(text.trim());
   if (n < 1) return { ok: false, error: 'Enter a number of at least 1.' };
+  if (max !== undefined && n > max) {
+    return { ok: false, error: `Enter at most ${max}. This file has ${max} in total.` };
+  }
   return { ok: true, value: n };
 }
 

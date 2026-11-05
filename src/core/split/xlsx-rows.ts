@@ -192,3 +192,17 @@ export const xlsxRowsEngine = {
     return parts;
   },
 };
+
+export async function countRows(file: File): Promise<number> {
+  const source = await JSZip.loadAsync(file);
+  const paths = sheetPaths(
+    await readText(source, 'xl/workbook.xml'),
+    await readText(source, 'xl/_rels/workbook.xml.rels'),
+  );
+  let max = 0;
+  for (const path of paths) {
+    const parsed = splitSheetXml(await readText(source, path));
+    if (parsed) max = Math.max(max, parsed.rows.length);
+  }
+  return max;
+}

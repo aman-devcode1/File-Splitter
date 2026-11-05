@@ -84,3 +84,10 @@ export const docxParagraphsEngine = {
     return parts;
   },
 };
+
+export async function countParagraphs(file: File): Promise<number> {
+  const source = await JSZip.loadAsync(file);
+  const entry = source.file(DOCUMENT_PATH);
+  if (!entry) return 0;
+  return splitDocumentXml(await entry.async('string')).paragraphs.length;
+}

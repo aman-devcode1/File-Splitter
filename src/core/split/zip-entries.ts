@@ -69,3 +69,8 @@ export const zipEntriesEngine = {
     return parts;
   },
 };
+
+export async function countZipEntries(file: File): Promise<number> {
+  const source = await JSZip.loadAsync(file);
+  return Object.values(source.files).filter((e) => !e.dir).length;
+}

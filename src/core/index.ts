@@ -5,6 +5,12 @@ import { zipEntriesEngine } from './split/zip-entries';
 import { textLinesEngine } from './split/text-lines';
 import { docxParagraphsEngine } from './split/docx-paragraphs';
 import { xlsxRowsEngine } from './split/xlsx-rows';
+import { registerCounter } from './registry';
+import { countPdfPages } from './split/pdf-pages';
+import { countZipEntries } from './split/zip-entries';
+import { countLines } from './split/text-lines';
+import { countParagraphs } from './split/docx-paragraphs';
+import { countRows } from './split/xlsx-rows';
 
 // Each engine is registered once. A mode shows up only when its engine is registered.
 registerEngine({
@@ -36,6 +42,12 @@ registerEngine({
   id: 'xlsx-rows',
   split: (file, detected, rowsPerPart) => xlsxRowsEngine.split(file, detected, rowsPerPart),
 } satisfies SplitEngine);
+
+registerCounter('pdf-pages', countPdfPages);
+registerCounter('zip-entries', countZipEntries);
+registerCounter('text-lines', countLines);
+registerCounter('docx-paragraphs', countParagraphs);
+registerCounter('xlsx-rows', countRows);
 
 export * from './types';
 export * from './detect/detect';

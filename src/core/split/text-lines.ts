@@ -37,3 +37,7 @@ export const textLinesEngine = {
     }));
   },
 };
+
+export async function countLines(file: File): Promise<number> {
+  return splitLines(await file.text()).length;
+}

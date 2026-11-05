@@ -8,6 +8,7 @@ import {
     type DetectedFile,
     type ModeDefinition,
     type SplitPart,
+    itemTotal,
 } from '../core';
 import type { ByteUnit } from '../core/split/byte-split';
 import './styles.css';
@@ -49,6 +50,16 @@ let detected: DetectedFile | null = null;
 let modes: ModeDefinition[] = [];
 let runId = 0;
 let urls: string[] = [];
+let total: number | null = null;
+let modeRun = 0;
+
+const nounFor: Record<string, string> = {
+  'pdf-pages': 'pages',
+  'zip-entries': 'files',
+  'text-lines': 'lines',
+  'docx-paragraphs': 'paragraphs',
+  'xlsx-rows': 'rows',
+};
 
 function fmt(bytes: number): string {
     if (bytes < 1000) return `${bytes} B`;
@@ -109,52 +120,82 @@ function currentMode(): ModeDefinition | undefined {
 }
 
 function renderModes(): void {
-    els.mode.innerHTML = '';
-    for (const m of modes) {
-        const opt = document.createElement('option');
-        opt.value = m.id;
-        opt.textContent = m.label;
-        els.mode.appendChild(opt);
+  els.mode.innerHTML = '';
+  for (const m of modes) {
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    opt.textContent = m.label;
+    els.mode.appendChild(opt);
+  }
+  void onModeChanged();
+}
+
+/** Loads the total for the chosen mode (if it counts items), then redraws the input. */
+async function onModeChanged(): Promise<void> {
+  const run = ++modeRun;
+  total = null;
+  const mode = currentMode();
+  if (mode && file && mode.input === 'count') {
+    try {
+      total = await itemTotal(mode, file);
+    } catch {
+      total = null;
     }
-    renderInput();
+  }
+  if (run !== modeRun) return;
+  renderInput();
 }
 
 function renderInput(): void {
-    const mode = currentMode();
-    if (!mode) return;
-    els.modeHelp.textContent = mode.help;
-    els.value.value = mode.defaultValue;
-    els.unit.hidden = mode.input !== 'bytes';
-    if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
+  const mode = currentMode();
+  if (!mode) return;
 
-    const labels = { bytes: 'Part size', count: 'Items per part', seconds: 'Seconds per clip' } as const;
+  els.modeHelp.textContent = mode.help;
+  els.unit.hidden = mode.input !== 'bytes';
+  if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
+
+  const labels = { bytes: 'Part size', count: 'Items per part', seconds: 'Seconds per clip' } as const;
+  els.valueLabel.textContent = labels[mode.input];
+
+  if (mode.input === 'count' && total !== null) {
+    const noun = nounFor[mode.engine] ?? 'items';
+    els.value.value = String(Math.min(Number(mode.defaultValue), total));
+    els.inputHelp.textContent = `This file has ${total} ${noun} in total. Enter 1 to ${total}.`;
+  } else {
+    els.value.value = mode.defaultValue;
     const hints = {
-        bytes: 'Part size, for example 10 MB or 2.5 GB.',
-        count: 'How many items go into each part, for example 10.',
-        seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
+      bytes: 'Part size, for example 10 MB or 2.5 GB.',
+      count: 'How many items go into each part, for example 10.',
+      seconds: 'Length of each clip in seconds, for example 60. Cuts happen at the nearest keyframe.',
     } as const;
-    els.valueLabel.textContent = labels[mode.input];
     els.inputHelp.textContent = hints[mode.input];
-    renderPresets(mode);
-    setError('');
-    updateEstimate();
+  }
+
+  renderPresets(mode);
+  setError('');
+  updateEstimate();
 }
 
 function updateEstimate(): void {
-    const mode = currentMode();
-    if (!file || !mode) {
-        els.estimate.textContent = '';
-        return;
-    }
-    const seconds = estimateSeconds(mode.engine, file.size);
-    els.estimate.textContent = `Estimated time: ${describeEstimate(seconds)} (depends on your device).`;
+  const mode = currentMode();
+  if (!file || !mode) {
+    els.estimate.textContent = '';
+    return;
+  }
+  const time = describeEstimate(estimateSeconds(mode.engine, file.size));
+  let parts = '';
+  if (mode.input === 'count' && total !== null) {
+    const v = validate();
+    if (v.ok) parts = `This will create ${Math.ceil(total / v.value)} parts. `;
+  }
+  els.estimate.textContent = `${parts}Estimated time: ${time} (depends on your device).`;
 }
 
 function validate(): { ok: true; value: number } | { ok: false; error: string } {
-    const mode = currentMode();
-    if (!mode) return { ok: false, error: 'Choose a split mode.' };
-    const r = parseModeInput(mode, els.value.value, els.unit.value as ByteUnit);
-    return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
+  const mode = currentMode();
+  if (!mode) return { ok: false, error: 'Choose a split mode.' };
+  const r = parseModeInput(mode, els.value.value, els.unit.value as ByteUnit, total ?? undefined);
+  return r.ok ? { ok: true, value: r.value } : { ok: false, error: r.error };
 }
 
 async function loadFile(f: File): Promise<void> {
@@ -240,6 +281,7 @@ function reset(): void {
     file = null;
     detected = null;
     modes = [];
+    total = null;
     clearResult();
     els.fileinfo.hidden = true;
     els.setup.hidden = true;
@@ -265,7 +307,7 @@ els.dropzone.addEventListener('drop', (e) => {
     const f = e.dataTransfer?.files[0];
     if (f) void loadFile(f);
 });
-els.mode.addEventListener('change', renderInput);
+els.mode.addEventListener('change', () => void onModeChanged());
 els.value.addEventListener('input', () => {
     setError('');
     updateEstimate();
