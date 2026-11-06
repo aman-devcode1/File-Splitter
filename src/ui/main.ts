@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import {
   detectFile,
   modesFor,
@@ -11,7 +12,7 @@ import {
   type SplitPart,
 } from '../core';
 import type { ByteUnit } from '../core/split/byte-split';
-import './styles.css';
+
 
 import '@fontsource/philosopher/400.css';
 import '@fontsource/philosopher/700.css';
@@ -45,6 +46,7 @@ const els = {
   result: $<HTMLElement>('result'),
   summary: $<HTMLElement>('summary'),
   partRows: $<HTMLElement>('partRows'),
+  zipAll: $<HTMLButtonElement>('zipAll'),
 };
 
 interface Preset {
@@ -98,6 +100,11 @@ let total: number | null = null;
 let modeRun = 0;
 /** Changes on every new file, so a late detection result is ignored. */
 let runId = 0;
+/** The parts of the current result, and the download links shown in the table. */
+let currentParts: SplitPart[] = [];
+let rowLinks: HTMLAnchorElement[] = [];
+/** Indexes of parts downloaded at least once, so the button can say "Download again". */
+let downloaded = new Set<number>();
 
 function isImageCount(mode: ModeDefinition): boolean {
   return mode.engine === 'image-h-count' || mode.engine === 'image-v-count';
@@ -120,8 +127,12 @@ function setError(msg: string): void {
 function clearResult(): void {
   for (const u of urls) URL.revokeObjectURL(u);
   urls = [];
+  currentParts = [];
+  rowLinks = [];
+  downloaded = new Set<number>();
   els.result.hidden = true;
   els.partRows.innerHTML = '';
+  els.zipAll.hidden = true;
 }
 
 function currentMode(): ModeDefinition | undefined {
@@ -355,16 +366,26 @@ async function doSplit(): Promise<void> {
   }
 }
 
+function markDownloaded(i: number): void {
+  downloaded.add(i);
+  const link = rowLinks[i];
+  if (link) link.textContent = 'Download again';
+}
+
 function renderParts(parts: SplitPart[]): void {
   clearResult();
+  currentParts = parts;
   els.result.hidden = false;
+
   const totalBytes = parts.reduce((s, p) => s + p.blob.size, 0);
   const word = parts.length === 1 ? 'part' : 'parts';
   els.summary.textContent = `${parts.length} ${word}, ${fmt(totalBytes)} in total. Nothing was uploaded.`;
+  els.zipAll.hidden = parts.length < 2;
 
-  for (const p of parts) {
+  parts.forEach((p, i) => {
     const url = URL.createObjectURL(p.blob);
     urls.push(url);
+
     const tr = document.createElement('tr');
     const tdName = document.createElement('td');
     tdName.className = 'name';
@@ -373,14 +394,48 @@ function renderParts(parts: SplitPart[]): void {
     tdSize.textContent = fmt(p.blob.size);
     const tdBtn = document.createElement('td');
     tdBtn.className = 'action';
+
     const a = document.createElement('a');
     a.href = url;
     a.download = p.name;
     a.className = 'btn btn-small';
     a.textContent = 'Download';
+    a.addEventListener('click', () => markDownloaded(i));
+
+    rowLinks.push(a);
     tdBtn.appendChild(a);
     tr.append(tdName, tdSize, tdBtn);
     els.partRows.appendChild(tr);
+  });
+}
+
+/** Packs all parts into one ZIP. Parts are already compressed (images, PDFs), so ZIP stores them as is. */
+async function downloadAllZip(): Promise<void> {
+  if (!file || currentParts.length === 0) return;
+  els.zipAll.disabled = true;
+  els.progress.textContent = 'Building ZIP...';
+
+  try {
+    const zip = new JSZip();
+    for (const p of currentParts) zip.file(p.name, p.blob);
+    const blob = await zip.generateAsync({ type: 'blob', compression: 'STORE' });
+
+    const base = file.name.replace(/\.[^.]+$/, '');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${base}_parts.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+
+    currentParts.forEach((_, i) => markDownloaded(i));
+  } catch {
+    setError('The ZIP could not be built. Try downloading the parts one by one.');
+  } finally {
+    els.zipAll.disabled = false;
+    els.progress.textContent = '';
   }
 }
 
@@ -424,4 +479,5 @@ els.mode.addEventListener('change', () => void onModeChanged());
 els.value.addEventListener('input', checkInput);
 els.unit.addEventListener('change', checkInput);
 els.splitBtn.addEventListener('click', () => void doSplit());
+els.zipAll.addEventListener('click', () => void downloadAllZip());
 els.reset.addEventListener('click', reset);

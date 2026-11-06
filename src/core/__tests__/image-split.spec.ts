@@ -63,6 +63,6 @@ describe('image modes and input rules', () => {
     expect(parseModeInput(cnt, '2', undefined, 100).ok).toBe(false);
     expect(parseModeInput(cnt, '3', undefined, 100).ok).toBe(true);
     expect(parseModeInput(cnt, '100', undefined, 50).ok).toBe(false);
-    expect(parseModeInput(cnt, '10000000').ok).toBe(false);
+        expect(parseModeInput(cnt, '10000000', undefined, 5000).ok).toBe(false);
   });
 });

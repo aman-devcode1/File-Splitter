@@ -1012,18 +1012,6 @@ select:disabled {
     transition: opacity 0.2s var(--ease-out), transform 0.2s var(--ease-out), overlay 0.2s allow-discrete, display 0.2s allow-discrete;
   }
 
-  ::picker(select):popover-open {
-    opacity: 1;
-    transform: none;
-  }
-
-  @starting-style {
-    ::picker(select):popover-open {
-      opacity: 0;
-      transform: translateY(-0.4rem) scale(0.98);
-    }
-  }
-
   select option {
     display: flex;
     align-items: center;

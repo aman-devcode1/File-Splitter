@@ -43,9 +43,6 @@ const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf'
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
 
-/** Hard ceiling for any count typed by the user, so a crore-sized number is rejected. */
-export const MAX_ITEMS = 1_000_000;
-
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [
   {
@@ -244,7 +241,6 @@ export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUn
     if (n > max) return { ok: false, error: `Enter at most ${max}. This file has ${max} in total.` };
   }
 
-  if (n > MAX_ITEMS) return { ok: false, error: `Enter at most ${MAX_ITEMS.toLocaleString('en-US')}.` };
   return { ok: true, value: n };
 }
 
