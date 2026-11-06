@@ -1,19 +1,12 @@
-import { registerEngine, type SplitEngine } from './registry';
+import { registerCounter, registerEngine, type SplitEngine } from './registry';
 import { byteEngine } from './split/byte-split';
-import { pdfPagesEngine } from './split/pdf-pages';
-import { zipEntriesEngine } from './split/zip-entries';
-import { textLinesEngine } from './split/text-lines';
-import { docxParagraphsEngine } from './split/docx-paragraphs';
-import { xlsxRowsEngine } from './split/xlsx-rows';
-import { registerCounter } from './registry';
-import { countPdfPages } from './split/pdf-pages';
-import { countZipEntries } from './split/zip-entries';
-import { countLines } from './split/text-lines';
-import { countParagraphs } from './split/docx-paragraphs';
-import { countRows } from './split/xlsx-rows';
-import { countTiles, imageTilesEngine } from './split/image-tiles';
+import { pdfPagesEngine, countPdfPages } from './split/pdf-pages';
+import { zipEntriesEngine, countZipEntries } from './split/zip-entries';
+import { textLinesEngine, countLines } from './split/text-lines';
+import { docxParagraphsEngine, countParagraphs } from './split/docx-paragraphs';
+import { xlsxRowsEngine, countRows } from './split/xlsx-rows';
+import { splitDiagonal, splitPercent, splitCount, countImageAxis } from './split/image-split';
 
-// Each engine is registered once. A mode shows up only when its engine is registered.
 registerEngine({
   id: 'byte',
   split: (file, _detected, partSize) => byteEngine.split(file, partSize),
@@ -21,42 +14,66 @@ registerEngine({
 
 registerEngine({
   id: 'pdf-pages',
-  split: (file, detected, pagesPerPart) => pdfPagesEngine.split(file, detected, pagesPerPart),
+  split: (file, detected, n) => pdfPagesEngine.split(file, detected, n),
 } satisfies SplitEngine);
 
 registerEngine({
   id: 'zip-entries',
-  split: (file, detected, entriesPerPart) => zipEntriesEngine.split(file, detected, entriesPerPart),
+  split: (file, detected, n) => zipEntriesEngine.split(file, detected, n),
 } satisfies SplitEngine);
 
 registerEngine({
   id: 'text-lines',
-  split: (file, detected, linesPerPart) => textLinesEngine.split(file, detected, linesPerPart),
+  split: (file, detected, n) => textLinesEngine.split(file, detected, n),
 } satisfies SplitEngine);
 
 registerEngine({
   id: 'docx-paragraphs',
-  split: (file, detected, perPart) => docxParagraphsEngine.split(file, detected, perPart),
+  split: (file, detected, n) => docxParagraphsEngine.split(file, detected, n),
 } satisfies SplitEngine);
 
 registerEngine({
   id: 'xlsx-rows',
-  split: (file, detected, rowsPerPart) => xlsxRowsEngine.split(file, detected, rowsPerPart),
+  split: (file, detected, n) => xlsxRowsEngine.split(file, detected, n),
 } satisfies SplitEngine);
 
 registerEngine({
-  id: 'image-tiles',
-  split: (file, detected, tiles) => imageTilesEngine.split(file, detected, tiles),
+  id: 'image-diag-tlbr',
+  split: (file) => splitDiagonal(file, 'tl-br'),
 } satisfies SplitEngine);
 
+registerEngine({
+  id: 'image-diag-trbl',
+  split: (file) => splitDiagonal(file, 'tr-bl'),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'image-h-percent',
+  split: (file, detected, p) => splitPercent(file, detected, 'horizontal', p),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'image-h-count',
+  split: (file, detected, n) => splitCount(file, detected, 'horizontal', n),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'image-v-percent',
+  split: (file, detected, p) => splitPercent(file, detected, 'vertical', p),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'image-v-count',
+  split: (file, detected, n) => splitCount(file, detected, 'vertical', n),
+} satisfies SplitEngine);
 
 registerCounter('pdf-pages', countPdfPages);
 registerCounter('zip-entries', countZipEntries);
 registerCounter('text-lines', countLines);
 registerCounter('docx-paragraphs', countParagraphs);
 registerCounter('xlsx-rows', countRows);
-registerCounter('image-tiles', countTiles);
-
+registerCounter('image-h-count', (file) => countImageAxis(file, 'horizontal'));
+registerCounter('image-v-count', (file) => countImageAxis(file, 'vertical'));
 
 export * from './types';
 export * from './detect/detect';
@@ -67,5 +84,5 @@ export * from './split/zip-entries';
 export * from './split/text-lines';
 export * from './split/docx-paragraphs';
 export * from './split/xlsx-rows';
+export * from './split/image-split';
 export * from './estimate';
-export * from './split/image-tiles';

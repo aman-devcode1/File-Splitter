@@ -8,12 +8,17 @@ export type EngineId =
   | 'zip-entries'
   | 'docx-paragraphs'
   | 'xlsx-rows'
-  | 'image-tiles'
   | 'text-lines'
-  | 'media-time';
+  | 'media-time'
+  | 'image-diag-tlbr'
+  | 'image-diag-trbl'
+  | 'image-h-percent'
+  | 'image-h-count'
+  | 'image-v-percent'
+  | 'image-v-count';
 
-/** What the user has to type for this mode. */
-export type InputKind = 'bytes' | 'count' | 'seconds';
+/** What the user has to type for this mode. 'none' means no input at all. */
+export type InputKind = 'bytes' | 'count' | 'seconds' | 'percent' | 'none';
 
 export interface ModeDefinition {
   readonly id: string;
@@ -22,6 +27,7 @@ export interface ModeDefinition {
   readonly engine: EngineId;
   readonly input: InputKind;
   readonly defaultValue: string;
+  readonly min?: number;
   readonly defaultUnit?: ByteUnit;
   readonly appliesTo: (kind: FileKind) => boolean;
 }
@@ -35,7 +41,10 @@ export interface SplitEngine {
 const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
 const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf', 'png', 'jpeg', 'webp', 'gif', 'bmp'];
 const TEXT_LINE_KINDS = ['text', 'csv'];
-const IMAGE_TILE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
+const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
+
+/** Hard ceiling for any count typed by the user, so a crore-sized number is rejected. */
+export const MAX_ITEMS = 1_000_000;
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [
@@ -85,15 +94,6 @@ export const MODES: readonly ModeDefinition[] = [
     defaultValue: '1000',
     appliesTo: (k) => k.id === 'xlsx',
   },
-    {
-    id: 'image-tiles',
-    label: 'Into tiles',
-    help: 'Splits the image into this many vertical slices. Each slice is a separate image.',
-    engine: 'image-tiles',
-    input: 'count',
-    defaultValue: '1',
-    appliesTo: (k) => IMAGE_TILE_KINDS.includes(k.id),
-  },
   {
     id: 'text-lines',
     label: 'By lines',
@@ -111,6 +111,62 @@ export const MODES: readonly ModeDefinition[] = [
     input: 'seconds',
     defaultValue: '60',
     appliesTo: (k) => k.category === 'video' || k.category === 'audio',
+  },
+    {
+    id: 'image-diag-tlbr',
+    label: 'Diagonal: top-left to bottom-right',
+    help: 'Cuts the image along the diagonal into 2 triangles. Each triangle is a PNG, and the empty area is transparent.',
+    engine: 'image-diag-tlbr',
+    input: 'none',
+    defaultValue: '',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+  {
+    id: 'image-diag-trbl',
+    label: 'Diagonal: top-right to bottom-left',
+    help: 'Cuts the image along the diagonal into 2 triangles. Each triangle is a PNG, and the empty area is transparent.',
+    engine: 'image-diag-trbl',
+    input: 'none',
+    defaultValue: '',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+  {
+    id: 'image-h-percent',
+    label: 'Horizontal cut: by percent',
+    help: 'The top part gets this percent of the height. The bottom part gets the rest. Always 2 parts.',
+    engine: 'image-h-percent',
+    input: 'percent',
+    defaultValue: '50',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+  {
+    id: 'image-h-count',
+    label: 'Horizontal cut: into equal parts',
+    help: 'Cuts the image into equal horizontal strips, from top to bottom. Starts at 3.',
+    engine: 'image-h-count',
+    input: 'count',
+    min: 3,
+    defaultValue: '3',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+  {
+    id: 'image-v-percent',
+    label: 'Vertical cut: by percent',
+    help: 'The left part gets this percent of the width. The right part gets the rest. Always 2 parts.',
+    engine: 'image-v-percent',
+    input: 'percent',
+    defaultValue: '50',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+  {
+    id: 'image-v-count',
+    label: 'Vertical cut: into equal parts',
+    help: 'Cuts the image into equal vertical strips, from left to right. Starts at 3.',
+    engine: 'image-v-count',
+    input: 'count',
+    min: 3,
+    defaultValue: '3',
+    appliesTo: (k) => IMAGE_KINDS.includes(k.id),
   },
 ];
 
@@ -154,23 +210,41 @@ export function modesFor(detected: DetectedFile): ModeDefinition[] {
 }
 
 /** validates what the user typed for a mode. */
-export function parseModeInput(
-  mode: ModeDefinition,
-  text: string,
-  unit?: ByteUnit,
-  max?: number,
-): Result<number> {
+/** Validates what the user typed for a mode. Rejects negatives, decimals, and values above the limit. */
+export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUnit, max?: number): Result<number> {
+  if (mode.input === 'none') return { ok: true, value: 0 };
+
   if (mode.input === 'bytes') {
     return toBytes(text, unit ?? mode.defaultUnit ?? 'MB');
   }
-  if (!/^\d+$/.test(text.trim())) {
-    return { ok: false, error: 'Enter a whole number.' };
+
+  const t = text.trim();
+  if (!/^\d+$/.test(t)) {
+    return {
+      ok: false,
+      error: mode.input === 'percent'
+        ? 'Enter a whole number from 1 to 99. No minus sign or decimals.'
+        : 'Enter a whole number. No minus sign or decimals.',
+    };
   }
-  const n = Number(text.trim());
-  if (n < 1) return { ok: false, error: 'Enter a number of at least 1.' };
-  if (max !== undefined && n > max) {
-    return { ok: false, error: `Enter at most ${max}. This file has ${max} in total.` };
+  const n = Number(t);
+
+  if (mode.input === 'percent') {
+    if (n < 1 || n > 99) return { ok: false, error: 'Enter a percent from 1 to 99.' };
+    return { ok: true, value: n };
   }
+
+  const min = mode.min ?? 1;
+  if (n < min) return { ok: false, error: `Enter at least ${min}.` };
+
+  if (max !== undefined) {
+    if (max < min) {
+      return { ok: false, error: `This file is too small to split into ${min} parts. It has only ${max}.` };
+    }
+    if (n > max) return { ok: false, error: `Enter at most ${max}. This file has ${max} in total.` };
+  }
+
+  if (n > MAX_ITEMS) return { ok: false, error: `Enter at most ${MAX_ITEMS.toLocaleString('en-US')}.` };
   return { ok: true, value: n };
 }
 
