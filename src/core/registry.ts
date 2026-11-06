@@ -220,25 +220,25 @@ export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUn
     return {
       ok: false,
       error: mode.input === 'percent'
-        ? 'Enter a whole number from 1 to 99. No minus sign or decimals.'
+        ? 'Please type a number between 1 and 99 (for example 40). Decimals and minus signs are not allowed.'
         : 'Enter a whole number. No minus sign or decimals.',
     };
   }
   const n = Number(t);
 
   if (mode.input === 'percent') {
-    if (n < 1 || n > 99) return { ok: false, error: 'Enter a percent from 1 to 99.' };
+    if (n < 1 || n > 99) return { ok: false, error: 'Please type a number between 1 and 99 (for example 40). Decimals and minus signs are not allowed.' };
     return { ok: true, value: n };
   }
 
   const min = mode.min ?? 1;
-  if (n < min) return { ok: false, error: `Enter at least ${min}.` };
+  if (n < min) return { ok: false, error: `Please type a number between ${min} and ${max ?? '∞'}.` };
 
   if (max !== undefined) {
     if (max < min) {
       return { ok: false, error: `This file is too small to split into ${min} parts. It has only ${max}.` };
     }
-    if (n > max) return { ok: false, error: `Enter at most ${max}. This file has ${max} in total.` };
+    if (n > max) return { ok: false, error: `Please type a number between ${min} and ${max}. This file has ${max} in total.` };
   }
 
   return { ok: true, value: n };
