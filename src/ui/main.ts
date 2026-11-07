@@ -364,7 +364,7 @@ async function loadFile(f: File): Promise<void> {
 
       const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
   if (isVideoOrAudio) {
-    const secs = await mediaDuration(f);
+    const secs = await mediaDuration(f, d.kind.id);
     if (id === runId) {
       els.durationRow.hidden = secs === null;
       if (secs !== null) {

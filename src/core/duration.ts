@@ -1,18 +1,25 @@
 import { findBox, parseMoov, topLevelBoxes } from './split/mp4';
+import { wavDuration } from './split/wav-split';
+import { readMp3 } from './split/mp3-split';
 
-/** Total duration in seconds for MP4/MOV/M4A. Returns null if it cannot be read. */
-export async function mediaDuration(file: File): Promise<number | null> {
+async function mp4Duration(file: File): Promise<number | null> {
+  const top = await topLevelBoxes(file);
+  const moov = findBox(top, 'moov');
+  const bytes = new Uint8Array(await file.slice(moov.start, moov.end).arrayBuffer());
+  const movie = parseMoov(bytes, moov.headerSize);
+  const view = new DataView(movie.mvhd.buffer, movie.mvhd.byteOffset, movie.mvhd.byteLength);
+  // mvhd: 8 byte header, then version+flags (4). Version 0 duration is at 24, version 1 at 32.
+  const version = view.getUint8(8);
+  const duration = version === 1 ? Number(view.getBigUint64(32)) : view.getUint32(24);
+  return movie.timescale > 0 ? duration / movie.timescale : null;
+}
+
+/** Total seconds for MP4/MOV/M4A, WAV and MP3. Returns null if it cannot be read. */
+export async function mediaDuration(file: File, kindId: string): Promise<number | null> {
   try {
-    const top = await topLevelBoxes(file);
-    const moov = findBox(top, 'moov');
-    const bytes = new Uint8Array(await file.slice(moov.start, moov.end).arrayBuffer());
-    const movie = parseMoov(bytes, moov.headerSize);
-    const view = new DataView(movie.mvhd.buffer, movie.mvhd.byteOffset, movie.mvhd.byteLength);
-    const version = view.getUint8(8);
-    const duration = version === 1
-      ? Number(view.getBigUint64(8 + 4 + 16))
-      : view.getUint32(8 + 4 + 12);
-    return movie.timescale > 0 ? duration / movie.timescale : null;
+    if (kindId === 'wav') return await wavDuration(file);
+    if (kindId === 'mp3') return (await readMp3(file)).duration;
+    return await mp4Duration(file);
   } catch {
     return null;
   }

@@ -42,11 +42,11 @@ const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
 const BYTE_UNUSABLE_KINDS = [
   'pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf',
   'png', 'jpeg', 'webp', 'gif', 'bmp',
-  'mp4', 'mov', 'm4a', 'wav',
+  'mp4', 'mov', 'm4a', 'wav', 'mp3',
 ];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
-const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav'];
+const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav', 'mp3'];
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [

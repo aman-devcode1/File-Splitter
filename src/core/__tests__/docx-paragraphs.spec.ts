@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import { detectFile, modesFor, planParagraphs, splitFile, splitDocumentXml } from '../index';
