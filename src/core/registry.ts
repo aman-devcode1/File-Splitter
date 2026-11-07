@@ -39,9 +39,14 @@ export interface SplitEngine {
 }
 
 const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
-const BYTE_UNUSABLE_KINDS = ['pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf', 'png', 'jpeg', 'webp', 'gif', 'bmp'];
+const BYTE_UNUSABLE_KINDS = [
+  'pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf',
+  'png', 'jpeg', 'webp', 'gif', 'bmp',
+  'mp4', 'mov', 'm4a', 'wav',
+];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
+const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav'];
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [
@@ -107,7 +112,7 @@ export const MODES: readonly ModeDefinition[] = [
     engine: 'media-time',
     input: 'seconds',
     defaultValue: '60',
-    appliesTo: (k) => k.category === 'video' || k.category === 'audio',
+    appliesTo: (k) => MEDIA_KINDS.includes(k.id),
   },
     {
     id: 'image-diag-tlbr',

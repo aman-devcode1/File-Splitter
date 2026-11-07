@@ -6,6 +6,8 @@ import { textLinesEngine, countLines } from './split/text-lines';
 import { docxParagraphsEngine, countParagraphs } from './split/docx-paragraphs';
 import { xlsxRowsEngine, countRows } from './split/xlsx-rows';
 import { splitDiagonal, splitPercent, splitCount, countImageAxis } from './split/image-split';
+import { splitMp4 } from './split/media-time';
+import { splitWav } from './split/wav-split';
 
 registerEngine({
   id: 'byte',
@@ -67,6 +69,17 @@ registerEngine({
   split: (file, detected, n) => splitCount(file, detected, 'vertical', n),
 } satisfies SplitEngine);
 
+registerEngine({
+  id: 'media-time',
+  split: (file, _detected, seconds) => splitMp4(file, seconds),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'media-time',
+  split: (file, detected, seconds) =>
+    detected.kind.id === 'wav' ? splitWav(file, seconds) : splitMp4(file, seconds),
+} satisfies SplitEngine);
+
 registerCounter('pdf-pages', countPdfPages);
 registerCounter('zip-entries', countZipEntries);
 registerCounter('text-lines', countLines);
@@ -86,3 +99,6 @@ export * from './split/docx-paragraphs';
 export * from './split/xlsx-rows';
 export * from './split/image-split';
 export * from './estimate';
+export * from './split/media-time';
+export * from './duration';
+export * from './split/wav-split';

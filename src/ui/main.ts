@@ -10,6 +10,8 @@ import {
     type DetectedFile,
     type ModeDefinition,
     type SplitPart,
+    formatClock,
+    mediaDuration,
 } from '../core';
 import type { ByteUnit } from '../core/split/byte-split';
 
@@ -51,6 +53,8 @@ const els = {
     partRows: $<HTMLElement>('partRows'),
     zipAll: $<HTMLButtonElement>('zipAll'),
     valueSuffix: $<HTMLElement>('valueSuffix'),
+      durationRow: $<HTMLElement>('fdurationRow'),
+  duration: $<HTMLElement>('fduration'),
 };
 
 interface Preset {
@@ -271,6 +275,8 @@ function renderInput(): void {
     if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
     els.valueLabel.textContent = labelFor(mode);
     els.valueSuffix.hidden = mode.input !== 'percent';
+    els.valueSuffix.hidden = mode.input !== 'percent' && mode.input !== 'seconds';
+    els.valueSuffix.textContent = mode.input === 'seconds' ? 'sec' : '%';
 
     if (mode.input === 'count' && total !== null) {
         els.value.value = String(mode.min ?? 1);
@@ -355,6 +361,19 @@ async function loadFile(f: File): Promise<void> {
 
     const d = await detectFile(f);
     if (id !== runId) return;
+
+      const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
+  if (isVideoOrAudio) {
+    const secs = await mediaDuration(f);
+    if (id === runId) {
+      els.durationRow.hidden = secs === null;
+      if (secs !== null) {
+        els.duration.textContent = `${formatClock(secs)} (${Math.round(secs).toLocaleString('en-US')} sec)`;
+      }
+    }
+  } else {
+    els.durationRow.hidden = true;
+  }
 
     detected = d;
     modes = modesFor(d);
