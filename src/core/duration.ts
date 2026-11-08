@@ -1,6 +1,7 @@
-import { findBox, parseMoov, topLevelBoxes } from './split/mp4';
-import { wavDuration } from './split/wav-split';
-import { readMp3 } from './split/mp3-split';
+import { readMp3 } from './audio/mp3-split';
+import { wavDuration } from './audio/wav-split';
+import { findBox, parseMoov, topLevelBoxes } from './video/mp4';
+import { scanFragments } from './video/mp4-fragmented';
 
 async function mp4Duration(file: File): Promise<number | null> {
   const top = await topLevelBoxes(file);
@@ -8,20 +9,19 @@ async function mp4Duration(file: File): Promise<number | null> {
   const bytes = new Uint8Array(await file.slice(moov.start, moov.end).arrayBuffer());
   const movie = parseMoov(bytes, moov.headerSize);
   const view = new DataView(movie.mvhd.buffer, movie.mvhd.byteOffset, movie.mvhd.byteLength);
-  // mvhd: 8 byte header, then version+flags (4). Version 0 duration is at 24, version 1 at 32.
   const version = view.getUint8(8);
   const duration = version === 1 ? Number(view.getBigUint64(32)) : view.getUint32(24);
-    if (duration === 0) {
-    const { scanFragments } = await import('./split/mp4-fragmented');
-    const t = movie.tracks.find((x) => x.handler === 'vide') ?? movie.tracks[0];
-    const frags = await scanFragments(file, t);
+
+  if (duration === 0) {
+    const video = movie.tracks.find((t) => t.handler === 'vide') ?? movie.tracks[0];
+    const frags = await scanFragments(file, video);
     const last = frags[frags.length - 1];
     return last ? last.time + last.dur : null;
   }
   return movie.timescale > 0 ? duration / movie.timescale : null;
 }
 
-/** Total seconds for MP4/MOV/M4A, WAV and MP3. Returns null if it cannot be read. */
+/** Total seconds for MP4/MOV/M4A, WAV, MP3. Returns null if it cannot be read. */
 export async function mediaDuration(file: File, kindId: string): Promise<number | null> {
   try {
     if (kindId === 'wav') return await wavDuration(file);

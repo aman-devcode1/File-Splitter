@@ -1,5 +1,5 @@
 import type { SplitPart } from '../types';
-import { partFileName } from './byte-split';
+import { partFileName } from '../shared/byte-split';
 
 const UNREADABLE = 'This WAV file could not be read. Byte split works for any file.';
 /** How much of the file start is read to find the header. Chunks before "data" are small. */

@@ -1,5 +1,5 @@
 import type { DetectedFile, FileKind, Result, SplitPart } from './types';
-import { toBytes, type ByteUnit } from './split/byte-split';
+import { toBytes, type ByteUnit } from './shared/byte-split';
 
 /** Which splitting engine a mode uses. Add a new id here when you write a new engine. */
 export type EngineId =

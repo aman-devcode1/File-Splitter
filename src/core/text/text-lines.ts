@@ -1,5 +1,5 @@
 import type { DetectedFile, SplitPart } from '../types';
-import { partFileName } from './byte-split';
+import { partFileName } from '../shared/byte-split';
 
 /** Splits text into lines and keeps each line ending, so joining the lines gives the same text back. */
 export function splitLines(text: string): string[] {

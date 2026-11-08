@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ascii, box, concat, findBox, fullBox, parseMoov, toArrayBuffer, topLevelBoxes, u32Flat } from '../split/mp4';
+import { ascii, box, concat, findBox, fullBox, parseMoov, toArrayBuffer, topLevelBoxes, u32Flat } from '../video/mp4';
 import { detectFile, splitFile } from '../index';
 
 function moov(): Uint8Array {

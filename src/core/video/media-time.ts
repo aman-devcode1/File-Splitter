@@ -1,5 +1,6 @@
 import type { SplitPart } from '../types';
-import { partFileName } from './byte-split';
+import { partFileName } from '../shared/byte-split';
+import { lowerBound, planCuts } from '../shared/cut-plan';
 import {
   ascii,
   box,
@@ -8,6 +9,7 @@ import {
   expandCtts,
   findBox,
   fullBox,
+  parseMoov,
   runs,
   sampleDeltas,
   sampleOffsets,
@@ -16,7 +18,6 @@ import {
   u32Flat,
   u64Flat,
   withDuration,
-  parseMoov,
   type Movie,
   type Track,
 } from './mp4';
@@ -63,54 +64,6 @@ function prepare(track: Track): Prepared {
   const deltas = sampleDeltas(track);
   const secs = decodeTimes(deltas).map((x) => x / track.timescale);
   return { track, deltas, secs, offsets: sampleOffsets(track), comp: expandCtts(track) };
-}
-
-/** First position whose value is >= target (values must be sorted). */
-function lowerBound(arr: Float64Array, target: number): number {
-  let lo = 0;
-  let hi = arr.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid] < target) lo = mid + 1;
-    else hi = mid;
-  }
-  return lo;
-}
-
-/** The key sample whose time is closest to target. Ties go to the later sample. */
-function nearestSync(secs: Float64Array, sync: number[], target: number): number {
-  let lo = 0;
-  let hi = sync.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (secs[sync[mid]] < target) lo = mid + 1;
-    else hi = mid;
-  }
-  const after = lo < sync.length ? sync[lo] : undefined;
-  const before = lo > 0 ? sync[lo - 1] : undefined;
-  if (after === undefined) return before ?? 0;
-  if (before === undefined) return after;
-  return target - secs[before] < secs[after] - target ? before : after;
-}
-
-/**
- * Sample indexes where each clip starts, plus the end (n).
- * For every multiple of clipSeconds, the nearest key sample is used as a cut.
- */
-export function planCuts(
-  secs: Float64Array,
-  sync: number[],
-  total: number,
-  clipSeconds: number,
-  n: number,
-): number[] {
-  const cuts = [0];
-  for (let target = clipSeconds; target < total; target += clipSeconds) {
-    const idx = nearestSync(secs, sync, target);
-    if (idx > cuts[cuts.length - 1]) cuts.push(idx);
-  }
-  cuts.push(n);
-  return cuts;
 }
 
 /**

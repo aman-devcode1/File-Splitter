@@ -1,6 +1,6 @@
 import type { SplitPart } from '../types';
-import { partFileName } from './byte-split';
-import { planCuts } from './media-time';
+import { partFileName } from '../shared/byte-split';
+import { planCuts } from '../shared/cut-plan';
 import {
   Mp4Error,
   findBox,

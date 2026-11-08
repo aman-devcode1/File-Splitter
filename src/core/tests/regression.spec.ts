@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
 import { detectFile, modesFor, parseModeInput, MODES } from '../index';
-import { ascii, box, toArrayBuffer, u32Flat } from '../split/mp4';
+import { ascii, box, toArrayBuffer, u32Flat } from '../video/mp4';
 
 async function modeIds(f: File): Promise<string[]> {
   return modesFor(await detectFile(f)).map((m) => m.id);

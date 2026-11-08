@@ -13,7 +13,7 @@ import {
     formatClock,
     mediaDuration,
 } from '../core';
-import type { ByteUnit } from '../core/split/byte-split';
+import type { ByteUnit } from '../core/shared/byte-split';
 
 
 import '@fontsource/philosopher/400.css';

@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import type { DetectedFile, SplitPart } from '../types';
-import { partFileName } from './byte-split';
+import { partFileName } from '../shared/byte-split';
 
 export interface EntryRange {
   readonly index: number;

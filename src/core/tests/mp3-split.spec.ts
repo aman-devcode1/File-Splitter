@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { detectFile, splitFile } from '../index';
-import { readMp3 } from '../split/mp3-split';
+import { readMp3 } from '../audio/mp3-split';
 
 /** MPEG-1 Layer III, 128 kbps, 44.1 kHz: every frame is 417 bytes and holds 1152 samples. */
 function makeMp3(frameCount: number): File {

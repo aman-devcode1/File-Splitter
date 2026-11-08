@@ -1,6 +1,6 @@
 import type { SplitPart } from '../types';
-import { partFileName } from './byte-split';
-import { planCuts } from './media-time';
+import { partFileName } from '../shared/byte-split';
+import { planCuts } from '../shared/cut-plan';
 
 const UNREADABLE = 'This MP3 could not be read. Byte split works for any file.';
 

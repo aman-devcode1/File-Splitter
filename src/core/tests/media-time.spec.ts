@@ -11,8 +11,9 @@ import {
   toArrayBuffer,
   topLevelBoxes,
   u32Flat,
-} from '../split/mp4';
-import { planCuts, splitMp4 } from '../split/media-time';
+} from '../video/mp4';
+import { splitMp4 } from '../video/media-time';
+import { planCuts } from '../shared/cut-plan';
 
 const SIZE = 16;
 

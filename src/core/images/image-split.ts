@@ -1,5 +1,5 @@
 import type { DetectedFile, SplitPart } from '../types';
-import { partFileName } from './byte-split';
+import { partFileName } from '../shared/byte-split';
 
 export type Axis = 'horizontal' | 'vertical';
 export type Diagonal = 'tl-br' | 'tr-bl';
