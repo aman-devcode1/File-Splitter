@@ -9,6 +9,8 @@ import {
   readBoxes,
   toArrayBuffer,
   topLevelBoxes,
+  type Box,
+  type Track,
 } from './mp4';
 
 export interface Fragment {
@@ -18,24 +20,36 @@ export interface Fragment {
   readonly moofEnd: number;
   /** mdat end */
   readonly end: number;
-  /** seconds from the start */
+  /** video start time, in seconds */
   readonly time: number;
-  /** seconds covered by this fragment */
+  /** video duration of this fragment, in seconds */
   readonly dur: number;
-  /** true when the first sample is a key frame */
+  /** true when the first video sample is a key frame */
+  readonly sync: boolean;
+  /** tfdt (decode start time) of every track in this fragment, in that track's ticks */
+  readonly baseByTrack: Map<number, number>;
+}
+
+interface TrafInfo {
+  readonly trackId: number;
+  readonly base: number;
+  readonly dur: number;
   readonly sync: boolean;
 }
 
-/** Reads one moof (its traf, tfhd, tfdt, trun). Times are converted with the track timescale. */
-function fragmentInfo(bytes: Uint8Array, timescale: number): { time: number; dur: number; sync: boolean } {
-  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-  const moofKids = readBoxes(view, 8, bytes.byteLength);
-  const traf = findBox(moofKids, 'traf');
+/** Track ID from the tkhd box. */
+export function trackIdOf(t: Track): number {
+  const v = new DataView(t.tkhd.buffer, t.tkhd.byteOffset, t.tkhd.byteLength);
+  return v.getUint32(v.getUint8(8) === 1 ? 28 : 20);
+}
+
+/** Reads one traf (tfhd, tfdt, trun). The view covers the whole moof. */
+function parseTraf(view: DataView, traf: Box): TrafInfo {
   const kids = readBoxes(view, payloadStart(traf), traf.end);
 
-  // tfhd: flags at +8, track_ID at +12, optional fields after that
   const tfhd = findBox(kids, 'tfhd');
   const tfhdFlags = view.getUint32(tfhd.start + 8) & 0xffffff;
+  const trackId = view.getUint32(tfhd.start + 12);
   let p = tfhd.start + 16;
   if (tfhdFlags & 0x1) p += 8; // base_data_offset
   if (tfhdFlags & 0x2) p += 4; // sample_description_index
@@ -45,7 +59,6 @@ function fragmentInfo(bytes: Uint8Array, timescale: number): { time: number; dur
   if (tfhdFlags & 0x10) p += 4; // default_sample_size
   if (tfhdFlags & 0x20) { defFlags = view.getUint32(p); p += 4; }
 
-  // tfdt: version at +8, baseMediaDecodeTime at +12
   const tfdt = kids.find((b) => b.type === 'tfdt');
   let base = 0;
   if (tfdt) {
@@ -54,7 +67,6 @@ function fragmentInfo(bytes: Uint8Array, timescale: number): { time: number; dur
       : view.getUint32(tfdt.start + 12);
   }
 
-  // trun: flags at +8, sample_count at +12, samples start at +16
   const trun = findBox(kids, 'trun');
   const f = view.getUint32(trun.start + 8) & 0xffffff;
   const count = view.getUint32(trun.start + 12);
@@ -73,27 +85,70 @@ function fragmentInfo(bytes: Uint8Array, timescale: number): { time: number; dur
     if (f & 0x400) { flags = view.getUint32(q); q += 4; }
     if (i === 0 && firstFlags !== null) flags = firstFlags;
     if (f & 0x800) q += 4; // composition offset
-    if (i === 0) sync = (flags & 0x10000) === 0; // sample_is_non_sync_sample bit
+    if (i === 0) sync = (flags & 0x10000) === 0;
     dur += d;
   }
-
-  return { time: base / timescale, dur: dur / timescale, sync };
+  return { trackId, base, dur, sync };
 }
 
-/** Every moof+mdat pair in the file, in order. */
-export async function scanFragments(file: File, timescale: number): Promise<Fragment[]> {
+/** Every moof+mdat pair in the file, in order. Times come from the video track. */
+export async function scanFragments(file: File, videoTrack: Track): Promise<Fragment[]> {
+  const videoId = trackIdOf(videoTrack);
   const top = await topLevelBoxes(file);
   const out: Fragment[] = [];
+
   for (let i = 0; i < top.length; i++) {
     const moof = top[i];
     if (moof.type !== 'moof') continue;
     const mdat = top[i + 1];
     if (!mdat || mdat.type !== 'mdat') throw new Mp4Error('A moof box is not followed by an mdat box.');
+
     const bytes = new Uint8Array(await file.slice(moof.start, moof.end).arrayBuffer());
-    const info = fragmentInfo(bytes, timescale);
-    out.push({ start: moof.start, moofEnd: moof.end, end: mdat.end, ...info });
+    const view = new DataView(bytes.buffer);
+    const trafs = readBoxes(view, 8, bytes.length)
+      .filter((b) => b.type === 'traf')
+      .map((b) => parseTraf(view, b));
+    if (trafs.length === 0) throw new Mp4Error('A moof box has no traf box.');
+
+    const video = trafs.find((t) => t.trackId === videoId) ?? trafs[0];
+    const baseByTrack = new Map<number, number>();
+    for (const t of trafs) baseByTrack.set(t.trackId, t.base);
+
+    out.push({
+      start: moof.start,
+      moofEnd: moof.end,
+      end: mdat.end,
+      time: video.base / videoTrack.timescale,
+      dur: video.dur / videoTrack.timescale,
+      sync: video.sync,
+      baseByTrack,
+    });
   }
   return out;
+}
+
+/**
+ * Moves every track's decode time so that the clip starts at 0 for each track.
+ * Audio and video are both rebased, so they stay in sync.
+ */
+function rebaseMoof(moof: Uint8Array, startByTrack: Map<number, number>): void {
+  const view = new DataView(moof.buffer, moof.byteOffset, moof.byteLength);
+  for (const traf of readBoxes(view, 8, moof.length).filter((b) => b.type === 'traf')) {
+    const kids = readBoxes(view, payloadStart(traf), traf.end);
+    const tfhd = kids.find((b) => b.type === 'tfhd');
+    const tfdt = kids.find((b) => b.type === 'tfdt');
+    if (!tfhd || !tfdt) continue;
+
+    const start = startByTrack.get(view.getUint32(tfhd.start + 12));
+    if (start === undefined) continue;
+
+    const version = view.getUint8(tfdt.start + 8);
+    const pos = tfdt.start + 12;
+    const current = version === 1 ? Number(view.getBigUint64(pos)) : view.getUint32(pos);
+    const next = Math.max(0, current - start);
+    if (version === 1) view.setBigUint64(pos, BigInt(next));
+    else view.setUint32(pos, next);
+  }
 }
 
 /** A playable MP4: ftyp, the original moov, then the fragments of this clip. */
@@ -103,17 +158,21 @@ async function buildFragClip(
   moov: Uint8Array,
   frags: Fragment[],
   firstSeq: number,
+  startByTrack: Map<number, number>,
 ): Promise<Blob> {
   const parts: BlobPart[] = [toArrayBuffer(ftyp), toArrayBuffer(moov)];
   let seq = firstSeq;
+
   for (const f of frags) {
-    // The moof is small, so it is copied. Only mfhd (sequence number) changes, and its size does not.
+    // moof is small, so it is copied. Only its size-neutral fields change, so data_offset stays valid.
     const moof = new Uint8Array(await file.slice(f.start, f.moofEnd).arrayBuffer());
     const view = new DataView(moof.buffer);
     const mfhd = readBoxes(view, 8, moof.length).find((b) => b.type === 'mfhd');
     if (mfhd) view.setUint32(mfhd.start + 12, seq++);
+    rebaseMoof(moof, startByTrack);
+
     parts.push(toArrayBuffer(moof));
-    parts.push(file.slice(f.moofEnd, f.end)); // mdat is not copied into memory
+    parts.push(file.slice(f.moofEnd, f.end)); // mdat is read from disk, not loaded into memory
   }
   return new Blob(parts, { type: 'video/mp4' });
 }
@@ -128,9 +187,9 @@ export async function splitFragmentedMp4(file: File, clipSeconds: number): Promi
   const moov = new Uint8Array(await file.slice(moovBox.start, moovBox.end).arrayBuffer());
 
   const movie = parseMoov(moov, moovBox.headerSize);
-  const track = movie.tracks.find((t) => t.handler === 'vide') ?? movie.tracks[0];
+  const video = movie.tracks.find((t) => t.handler === 'vide') ?? movie.tracks[0];
 
-  const frags = await scanFragments(file, track.timescale);
+  const frags = await scanFragments(file, video);
   if (frags.length === 0) throw new Error('No fragments were found in this file.');
 
   const secs = Float64Array.from(frags, (f) => f.time);
@@ -147,7 +206,7 @@ export async function splitFragmentedMp4(file: File, clipSeconds: number): Promi
     const slice = frags.slice(cuts[i], cuts[i + 1]);
     parts.push({
       name: partFileName(file.name, i, count),
-      blob: await buildFragClip(file, ftyp, moov, slice, seq),
+      blob: await buildFragClip(file, ftyp, moov, slice, seq, slice[0].baseByTrack),
     });
     seq += slice.length;
   }

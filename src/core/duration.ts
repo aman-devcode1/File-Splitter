@@ -14,7 +14,7 @@ async function mp4Duration(file: File): Promise<number | null> {
     if (duration === 0) {
     const { scanFragments } = await import('./split/mp4-fragmented');
     const t = movie.tracks.find((x) => x.handler === 'vide') ?? movie.tracks[0];
-    const frags = await scanFragments(file, t.timescale);
+    const frags = await scanFragments(file, t);
     const last = frags[frags.length - 1];
     return last ? last.time + last.dur : null;
   }
