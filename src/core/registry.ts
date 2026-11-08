@@ -46,7 +46,7 @@ const BYTE_UNUSABLE_KINDS = [
 ];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
-const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav', 'mp3', 'flac'];
+const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav', 'mp3', 'flac', 'ogg'];
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [

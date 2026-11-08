@@ -13,6 +13,7 @@ Status: pending / pass / fail / n/a (expected)
 | Audio/M4A | Taswir 3:52 | By length | 60 | 4 | yes | 3:52 | pending | browser test karein |
 | Audio/WAV | Taswir 41 MB | By length | 60 | | | 2:xx | pending | browser test karein |
 | Audio/MP3 | Taswir 7.7 MB | By length | 60 | | | 2:xx | pending | browser test karein |
+| Audio/FLAC | NARAZ (MP3 se convert) | By length | 60 sec | 4 | yes | 3:08 | pass | frame-accurate cut, total duration matches |
 | Image | Screenshot JPG | Diagonal | - | 2 | yes | - | pass | |
 | Image | Screenshot JPG | Horizontal percent | 50 | 2 | | | pending | |
 | Image | Screenshot JPG | Vertical equal | 3 | 3 | | | pending | |

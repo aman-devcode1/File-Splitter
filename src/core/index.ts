@@ -12,6 +12,7 @@ import { splitMp4 } from './video/media-time';
 import { splitFragmentedToRegular } from './video/mp4-regular';
 import { topLevelBoxes } from './video/mp4';
 import { splitFlac } from './audio/flac-split';
+import { splitOgg } from './audio/ogg-split';
 
 registerEngine({
   id: 'byte',
@@ -83,6 +84,8 @@ registerEngine({
         return splitMp3(file, seconds);
       case 'flac':
         return splitFlac(file, seconds);
+      case 'ogg':
+        return splitOgg(file, seconds);
       default: {
         const isFragmented = (await topLevelBoxes(file)).some((b) => b.type === 'moof');
         return isFragmented ? splitFragmentedToRegular(file, seconds) : splitMp4(file, seconds);
@@ -113,6 +116,7 @@ export * from './images/image-split';
 export * from './audio/wav-split';
 export * from './audio/mp3-split';
 export * from './audio/flac-split';
+export * from './audio/ogg-split';
 export * from './video/media-time';
 export * from './video/mp4-regular';
 export * from './video/mp4-fragmented';
