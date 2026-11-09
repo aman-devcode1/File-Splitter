@@ -12,6 +12,7 @@ import {
     type SplitPart,
     formatClock,
     mediaDuration,
+    oggCodec,
 } from '../core';
 import type { ByteUnit } from '../core/shared/byte-split';
 
@@ -53,8 +54,9 @@ const els = {
     partRows: $<HTMLElement>('partRows'),
     zipAll: $<HTMLButtonElement>('zipAll'),
     valueSuffix: $<HTMLElement>('valueSuffix'),
-      durationRow: $<HTMLElement>('fdurationRow'),
-  duration: $<HTMLElement>('fduration'),
+    durationRow: $<HTMLElement>('fdurationRow'),
+    duration: $<HTMLElement>('fduration'),
+    codecTip: $<HTMLElement>('codecTip'),
 };
 
 interface Preset {
@@ -362,18 +364,29 @@ async function loadFile(f: File): Promise<void> {
     const d = await detectFile(f);
     if (id !== runId) return;
 
-      const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
-  if (isVideoOrAudio) {
-    const secs = await mediaDuration(f, d.kind.id);
-    if (id === runId) {
-      els.durationRow.hidden = secs === null;
-      if (secs !== null) {
-        els.duration.textContent = `${formatClock(secs)} (${Math.round(secs).toLocaleString('en-US')} sec)`;
-      }
+    const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
+    if (isVideoOrAudio) {
+        const secs = await mediaDuration(f, d.kind.id);
+        if (id === runId) {
+            els.durationRow.hidden = secs === null;
+            if (secs !== null) {
+                els.duration.textContent = `${formatClock(secs)} (${Math.round(secs).toLocaleString('en-US')} sec)`;
+            }
+        }
+    } else {
+        els.durationRow.hidden = true;
     }
-  } else {
-    els.durationRow.hidden = true;
-  }
+
+    if (d.kind.id === 'ogg') {
+        const codec = await oggCodec(f);
+        if (id === runId) {
+            els.codecTip.hidden = codec !== 'vorbis';
+            els.codecTip.textContent =
+                'This is an Ogg Vorbis file. If there is a delay when jumping to a specific point, try the Opus version of the same audio, which often offers better seeking and quality.';
+        }
+    } else {
+        els.codecTip.hidden = true;
+    }
 
     detected = d;
     modes = modesFor(d);
@@ -419,12 +432,12 @@ async function doSplit(): Promise<void> {
 }
 
 function markDownloaded(i: number): void {
-  downloaded.add(i);
-  const link = rowLinks[i];
-  if (link) {
-    link.textContent = 'Download again';
-    link.dataset.again = 'true';
-  }
+    downloaded.add(i);
+    const link = rowLinks[i];
+    if (link) {
+        link.textContent = 'Download again';
+        link.dataset.again = 'true';
+    }
 }
 
 function renderParts(parts: SplitPart[]): void {
@@ -512,6 +525,7 @@ function reset(): void {
     els.split.hidden = true;
     setError('');
     els.picker.value = '';
+    els.codecTip.hidden = true;
 }
 
 // Events

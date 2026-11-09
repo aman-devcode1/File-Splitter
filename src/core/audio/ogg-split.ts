@@ -170,3 +170,9 @@ export async function splitOgg(file: File, clipSeconds: number): Promise<SplitPa
   }
   return parts;
 }
+
+/** Which codec is inside an Ogg file: Opus or Vorbis. */
+export async function oggCodec(file: File): Promise<'opus' | 'vorbis'> {
+  const head = new Uint8Array(await file.slice(0, 64).arrayBuffer());
+  return String.fromCharCode(...head).includes('OpusHead') ? 'opus' : 'vorbis';
+}

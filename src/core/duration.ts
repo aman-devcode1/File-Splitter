@@ -4,6 +4,7 @@ import { findBox, parseMoov, topLevelBoxes } from './video/mp4';
 import { scanFragments } from './video/mp4-fragmented';
 import { readFlac } from './audio/flac-split';
 import { oggDuration } from './audio/ogg-split';
+import { mkvDuration } from './video/matroska';
 
 async function mp4Duration(file: File): Promise<number | null> {
   const top = await topLevelBoxes(file);
@@ -30,6 +31,7 @@ export async function mediaDuration(file: File, kindId: string): Promise<number 
     if (kindId === 'mp3') return (await readMp3(file)).duration;
     if (kindId === 'flac') return (await readFlac(file)).duration;
     if (kindId === 'ogg') return await oggDuration(file);
+    if (kindId === 'mkv' || kindId === 'webm') return await mkvDuration(file);
     return await mp4Duration(file);
   } catch {
     return null;
