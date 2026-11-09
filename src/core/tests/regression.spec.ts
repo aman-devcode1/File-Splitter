@@ -42,9 +42,9 @@ describe('modes per format (regression)', () => {
     expect(await modeIds(new File([toArrayBuffer(ftyp)], 'a.mp4'))).toEqual(['media-time']);
   });
 
-  it('MKV has no structure mode, so byte split stays', async () => {
+  it('MKV offers length clips only (byte parts do not open)', async () => {
     const f = new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0])], 'a.mkv');
-    expect(await modeIds(f)).toEqual(['bytes']);
+    expect(await modeIds(f)).toEqual(['media-time']);
   });
 });
 
