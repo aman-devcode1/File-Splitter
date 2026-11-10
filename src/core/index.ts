@@ -15,6 +15,8 @@ import { splitFlac } from './audio/flac-split';
 import { splitOgg } from './audio/ogg-split';
 import { splitMkv } from './video/matroska';
 import { splitAvi } from './video/avi';
+import { countEpubChapters, splitEpubChapters } from './documents/epub-chapters';
+import { countPptxSlides, splitPptxSlides } from './documents/pptx-slides';
 
 registerEngine({
   id: 'byte',
@@ -45,6 +47,19 @@ registerEngine({
   id: 'xlsx-rows',
   split: (file, detected, n) => xlsxRowsEngine.split(file, detected, n),
 } satisfies SplitEngine);
+
+registerEngine({
+  id: 'pptx-slides',
+  split: (file, _detected, n) => splitPptxSlides(file, n),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'epub-chapters',
+  split: (file, _detected, n) => splitEpubChapters(file, n),
+} satisfies SplitEngine);
+
+registerCounter('pptx-slides', countPptxSlides);
+registerCounter('epub-chapters', countEpubChapters);
 
 registerEngine({
   id: 'image-diag-tlbr',
@@ -117,6 +132,8 @@ export * from './shared/cut-plan';
 export * from './documents/pdf-pages';
 export * from './documents/docx-paragraphs';
 export * from './documents/xlsx-rows';
+export * from './documents/pptx-slides';
+export * from './documents/epub-chapters';
 export * from './archives/zip-entries';
 export * from './text/text-lines';
 export * from './images/image-split';

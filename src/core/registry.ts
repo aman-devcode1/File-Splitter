@@ -15,7 +15,9 @@ export type EngineId =
   | 'image-h-percent'
   | 'image-h-count'
   | 'image-v-percent'
-  | 'image-v-count';
+  | 'image-v-count'
+  | 'pptx-slides'
+  | 'epub-chapters';
 
 /** What the user has to type for this mode. 'none' means no input at all. */
 export type InputKind = 'bytes' | 'count' | 'seconds' | 'percent' | 'none';
@@ -95,6 +97,24 @@ export const MODES: readonly ModeDefinition[] = [
     input: 'count',
     defaultValue: '1000',
     appliesTo: (k) => k.id === 'xlsx',
+  },
+    {
+    id: 'pptx-slides',
+    label: 'By slides',
+    help: 'Each part is a complete presentation with this many slides.',
+    engine: 'pptx-slides',
+    input: 'count',
+    defaultValue: '1',
+    appliesTo: (k) => k.id === 'pptx',
+  },
+  {
+    id: 'epub-chapters',
+    label: 'By chapters',
+    help: 'Each part is a complete ebook with this many chapters. The table of contents may link to chapters that are in other parts.',
+    engine: 'epub-chapters',
+    input: 'count',
+    defaultValue: '1',
+    appliesTo: (k) => k.id === 'epub',
   },
   {
     id: 'text-lines',
@@ -211,7 +231,6 @@ export function modesFor(detected: DetectedFile): ModeDefinition[] {
   return available;
 }
 
-/** validates what the user typed for a mode. */
 /** Validates what the user typed for a mode. Rejects negatives, decimals, and values above the limit. */
 export function parseModeInput(mode: ModeDefinition, text: string, unit?: ByteUnit, max?: number): Result<number> {
   if (mode.input === 'none') return { ok: true, value: 0 };

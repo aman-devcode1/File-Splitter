@@ -79,6 +79,8 @@ const countLabels: Record<string, string> = {
     'xlsx-rows': 'Rows per part',
     'image-h-count': 'Number of horizontal parts',
     'image-v-count': 'Number of vertical parts',
+    'pptx-slides': 'Slides per part',
+    'epub-chapters': 'Chapters per part',
 };
 
 const countNouns: Record<string, string> = {
@@ -87,6 +89,8 @@ const countNouns: Record<string, string> = {
     'text-lines': 'lines',
     'docx-paragraphs': 'paragraphs',
     'xlsx-rows': 'rows',
+    'pptx-slides': 'slides',
+    'epub-chapters': 'chapters',
 };
 
 const BYTE_PRESETS: Preset[] = [
