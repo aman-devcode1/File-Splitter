@@ -33,9 +33,9 @@ export async function mediaDuration(file: File, kindId: string): Promise<number 
     if (kindId === 'flac') return (await readFlac(file)).duration;
     if (kindId === 'ogg') return await oggDuration(file);
     if (kindId === 'mkv' || kindId === 'webm') return await mkvDuration(file);
-    if (kindId === 'avi') {
+        if (kindId === 'avi') {
       const info = await readAvi(file);
-      const frames = info.frames.filter((f) => f.id.startsWith(info.videoStream)).length;
+      const frames = info.chunks.filter((c) => c.id.startsWith(info.videoStream)).length;
       return frames / info.fps;
     }
     return await mp4Duration(file);
