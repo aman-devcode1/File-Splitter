@@ -5,6 +5,7 @@ import { scanFragments } from './video/mp4-fragmented';
 import { readFlac } from './audio/flac-split';
 import { oggDuration } from './audio/ogg-split';
 import { mkvDuration } from './video/matroska';
+import { readAvi } from './video/avi';
 
 async function mp4Duration(file: File): Promise<number | null> {
   const top = await topLevelBoxes(file);
@@ -32,6 +33,11 @@ export async function mediaDuration(file: File, kindId: string): Promise<number 
     if (kindId === 'flac') return (await readFlac(file)).duration;
     if (kindId === 'ogg') return await oggDuration(file);
     if (kindId === 'mkv' || kindId === 'webm') return await mkvDuration(file);
+    if (kindId === 'avi') {
+      const info = await readAvi(file);
+      const frames = info.frames.filter((f) => f.id.startsWith(info.videoStream)).length;
+      return frames / info.fps;
+    }
     return await mp4Duration(file);
   } catch {
     return null;

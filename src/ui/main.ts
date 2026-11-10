@@ -20,7 +20,13 @@ import type { ByteUnit } from '../core/shared/byte-split';
 import '@fontsource/philosopher/400.css';
 import '@fontsource/philosopher/700.css';
 
-const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+// const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+
+const $ = <T extends HTMLElement>(id: string): T => {
+    const el = document.getElementById(id);
+    if (!el) throw new Error(`Missing element #${id} in index.html`);
+    return el as T;
+};
 
 const els = {
     dropzone: $<HTMLElement>('dropzone'),
@@ -276,7 +282,6 @@ function renderInput(): void {
     els.valueField.hidden = mode.input === 'none';
     if (mode.input === 'bytes' && mode.defaultUnit) els.unit.value = mode.defaultUnit;
     els.valueLabel.textContent = labelFor(mode);
-    els.valueSuffix.hidden = mode.input !== 'percent';
     els.valueSuffix.hidden = mode.input !== 'percent' && mode.input !== 'seconds';
     els.valueSuffix.textContent = mode.input === 'seconds' ? 'sec' : '%';
 
@@ -360,38 +365,49 @@ async function loadFile(f: File): Promise<void> {
     els.fileinfo.hidden = false;
     els.setup.hidden = false;
     els.split.hidden = false;
+    els.durationRow.hidden = true;
+    els.codecTip.hidden = true;
 
-    const d = await detectFile(f);
+    let d: DetectedFile;
+    try {
+        d = await detectFile(f);
+    } catch (e) {
+        if (id === runId) {
+            els.ftype.textContent = 'Unknown (could not be read)';
+            setError(e instanceof Error ? e.message : 'The file could not be read.');
+        }
+        return;
+    }
     if (id !== runId) return;
-
-    const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
-    if (isVideoOrAudio) {
-        const secs = await mediaDuration(f, d.kind.id);
-        if (id === runId) {
-            els.durationRow.hidden = secs === null;
-            if (secs !== null) {
-                els.duration.textContent = `${formatClock(secs)} (${Math.round(secs).toLocaleString('en-US')} sec)`;
-            }
-        }
-    } else {
-        els.durationRow.hidden = true;
-    }
-
-    if (d.kind.id === 'ogg') {
-        const codec = await oggCodec(f);
-        if (id === runId) {
-            els.codecTip.hidden = codec !== 'vorbis';
-            els.codecTip.textContent =
-                'This is an Ogg Vorbis file. If there is a delay when jumping to a specific point, try the Opus version of the same audio, which often offers better seeking and quality.';
-        }
-    } else {
-        els.codecTip.hidden = true;
-    }
 
     detected = d;
     modes = modesFor(d);
     els.ftype.textContent = `${d.kind.label} (${d.method === 'signature' ? 'checked from content' : 'from extension'})`;
     renderModes();
+
+    const isVideoOrAudio = d.kind.category === 'video' || d.kind.category === 'audio';
+    if (isVideoOrAudio) {
+        try {
+            const secs = await mediaDuration(f, d.kind.id);
+            if (id === runId && secs !== null) {
+                els.durationRow.hidden = false;
+                els.duration.textContent = `${formatClock(secs)} (${Math.round(secs).toLocaleString('en-US')} sec)`;
+            }
+        } catch {
+            // duration is optional, so a failure here must not block splitting
+        }
+    }
+
+    if (d.kind.id === 'ogg' && id === runId) {
+        try {
+            const codec = await oggCodec(f);
+            els.codecTip.hidden = codec !== 'vorbis';
+            els.codecTip.textContent =
+                'This is an Ogg Vorbis file. If there is a delay when jumping to a specific point, try the Opus version of the same audio, which often offers better seeking and quality.';
+        } catch {
+            els.codecTip.hidden = true;
+        }
+    }
 }
 
 async function doSplit(): Promise<void> {
