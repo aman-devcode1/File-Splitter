@@ -18,7 +18,7 @@ Legend: ✅ tested in browser · 🟡 code ready, testing pending · ⬜ planned
 | images | WEBP, GIF, BMP | Same as JPG | 🟡 |
 | audio | MP3, WAV, FLAC, M4A | By length | ✅ |
 | audio | OGG (Vorbis) | By length | ✅ (seek par ~1 sec delay) |
-| audio | Opus | By length | 🟡 |
+| audio | Opus | By length | ✅ |
 | video | MP4, MOV | By length | ✅ |
 | video | MP4 (fragmented) | By length | ✅ |
 | video | MKV, WebM | By length | 🟡 |
