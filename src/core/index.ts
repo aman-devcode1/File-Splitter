@@ -19,6 +19,7 @@ import { countEpubChapters, splitEpubChapters } from './documents/epub-chapters'
 import { countPptxSlides, splitPptxSlides } from './documents/pptx-slides';
 import { countOdf, splitOdf } from './documents/odf';
 import { detectFile } from './detect/detect';
+import { countSubtitleCues, splitSubtitleCues } from './text/subtitle-cues';
 
 registerEngine({
   id: 'byte',
@@ -38,6 +39,11 @@ registerEngine({
 registerEngine({
   id: 'text-lines',
   split: (file, detected, n) => textLinesEngine.split(file, detected, n),
+} satisfies SplitEngine);
+
+registerEngine({
+  id: 'subtitle-cues',
+  split: (file, _detected, n) => splitSubtitleCues(file, n),
 } satisfies SplitEngine);
 
 registerEngine({
@@ -123,6 +129,7 @@ registerEngine({
 registerCounter('pdf-pages', countPdfPages);
 registerCounter('zip-entries', countZipEntries);
 registerCounter('text-lines', countLines);
+registerCounter('subtitle-cues', countSubtitleCues);
 registerCounter('docx-paragraphs', countParagraphs);
 registerCounter('xlsx-rows', countRows);
 registerCounter('pptx-slides', countPptxSlides);
@@ -144,6 +151,7 @@ export * from './documents/epub-chapters';
 export * from './documents/odf';
 export * from './archives/zip-entries';
 export * from './text/text-lines';
+export * from './text/subtitle-cues';
 export * from './images/image-split';
 export * from './audio/wav-split';
 export * from './audio/mp3-split';

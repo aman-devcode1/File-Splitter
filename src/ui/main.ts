@@ -82,6 +82,7 @@ const countLabels: Record<string, string> = {
     'pptx-slides': 'Slides per part',
     'epub-chapters': 'Chapters per part',
     'odf': 'Items per part',
+    'subtitle-cues': 'Cues per part',
 };
 
 const countNouns: Record<string, string> = {
@@ -93,6 +94,7 @@ const countNouns: Record<string, string> = {
     'pptx-slides': 'slides',
     'epub-chapters': 'chapters',
     'odf': 'items',
+    'subtitle-cues': 'cues',
 };
 
 const BYTE_PRESETS: Preset[] = [

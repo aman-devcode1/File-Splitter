@@ -12,8 +12,13 @@ Legend: ✅ tested in browser · 🟡 code ready, testing pending · ⬜ planned
 | documents | PDF | By pages | ✅ |
 | documents | DOCX, XLSX | By paragraphs / rows | 🟡 |
 | documents | PPTX, EPUB | By slides / chapters | 🟡 |
+| documents | ODT | By paragraphs | ✅ |
+| documents | ODS | By rows | ✅ |
+| documents | ODP | By slides | 🟡 |
 | archives | ZIP | By files inside | 🟡 |
 | text | TXT, CSV | By lines | 🟡 |
+| text | SRT | By cues | ✅ |
+| text | VTT | By cues | 🟡 |
 | images | JPG, PNG | Diagonal, percent, equal parts | ✅ |
 | images | WEBP, GIF, BMP | Same as JPG | 🟡 |
 | audio | MP3, WAV, FLAC, M4A | By length | ✅ |
@@ -21,11 +26,12 @@ Legend: ✅ tested in browser · 🟡 code ready, testing pending · ⬜ planned
 | audio | Opus | By length | ✅ |
 | video | MP4, MOV | By length | ✅ |
 | video | MP4 (fragmented) | By length | ✅ |
+| video | 3GP | By length | ✅ |
+| video | M4V | By length | 🟡 |
 | video | MKV, WebM | By length | 🟡 |
 | video | AVI | By length | 🟡 |
-| video | M4V, 3GP, FLV, TS | By length | ⬜ |
-| text | SRT, VTT | By cues | ⬜ |
-| documents | ODT, ODS, ODP | By paragraphs / rows / slides | ⬜ |
+| video | FLV | By length | 🟡 |
+| video | TS, M2TS | By length | ⬜ |
 
 Sirf byte split wale formats: RAR, 7Z, GZIP, TAR, JSON, XML, HTML, code files, ISO, IMG, VHD, EXE, DLL, APK, fonts, SQLite, PSD, HEIC, aur koi bhi unknown file. Ye formats structure ke bina split nahi ho sakte, ya unka structure split karna fayda nahi deta.
 
