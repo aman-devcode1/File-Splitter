@@ -17,7 +17,8 @@ export type EngineId =
   | 'image-v-percent'
   | 'image-v-count'
   | 'pptx-slides'
-  | 'epub-chapters';
+  | 'epub-chapters'
+  | 'odf';
 
 /** What the user has to type for this mode. 'none' means no input at all. */
 export type InputKind = 'bytes' | 'count' | 'seconds' | 'percent' | 'none';
@@ -189,6 +190,15 @@ export const MODES: readonly ModeDefinition[] = [
     min: 3,
     defaultValue: '3',
     appliesTo: (k) => IMAGE_KINDS.includes(k.id),
+  },
+    {
+    id: 'odf',
+    label: 'By paragraphs / rows / slides',
+    help: 'Each part is a complete OpenDocument file with this many items (paragraphs for ODT, rows for ODS, slides for ODP).',
+    engine: 'odf',
+    input: 'count',
+    defaultValue: '1',
+    appliesTo: (k) => k.id === 'odf',
   },
 ];
 

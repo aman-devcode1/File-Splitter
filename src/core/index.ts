@@ -17,6 +17,8 @@ import { splitMkv } from './video/matroska';
 import { splitAvi } from './video/avi';
 import { countEpubChapters, splitEpubChapters } from './documents/epub-chapters';
 import { countPptxSlides, splitPptxSlides } from './documents/pptx-slides';
+import { countOdf, splitOdf } from './documents/odf';
+import { detectFile } from './detect/detect';
 
 registerEngine({
   id: 'byte',
@@ -58,8 +60,10 @@ registerEngine({
   split: (file, _detected, n) => splitEpubChapters(file, n),
 } satisfies SplitEngine);
 
-registerCounter('pptx-slides', countPptxSlides);
-registerCounter('epub-chapters', countEpubChapters);
+registerEngine({
+  id: 'odf',
+  split: (file, detected, n) => splitOdf(file, detected, n),
+} satisfies SplitEngine);
 
 registerEngine({
   id: 'image-diag-tlbr',
@@ -121,6 +125,9 @@ registerCounter('zip-entries', countZipEntries);
 registerCounter('text-lines', countLines);
 registerCounter('docx-paragraphs', countParagraphs);
 registerCounter('xlsx-rows', countRows);
+registerCounter('pptx-slides', countPptxSlides);
+registerCounter('epub-chapters', countEpubChapters);
+registerCounter('odf', async (file) => countOdf(file, await detectFile(file)));
 registerCounter('image-h-count', (file) => countImageAxis(file, 'horizontal'));
 registerCounter('image-v-count', (file) => countImageAxis(file, 'vertical'));
 
@@ -134,6 +141,7 @@ export * from './documents/docx-paragraphs';
 export * from './documents/xlsx-rows';
 export * from './documents/pptx-slides';
 export * from './documents/epub-chapters';
+export * from './documents/odf';
 export * from './archives/zip-entries';
 export * from './text/text-lines';
 export * from './images/image-split';
