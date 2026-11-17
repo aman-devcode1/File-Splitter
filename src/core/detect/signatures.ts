@@ -68,9 +68,13 @@ export const FILE_KINDS: readonly FileKind[] = [
   { id: 'mkv', label: 'Matroska video', category: 'video', extensions: ['mkv'], magic: [[hex(0, 0x1a, 0x45, 0xdf, 0xa3)]] },
   { id: 'webm', label: 'WebM video', category: 'video', extensions: ['webm'], magic: [[hex(0, 0x1a, 0x45, 0xdf, 0xa3)]] },
   { id: 'flv', label: 'Flash video', category: 'video', extensions: ['flv'], magic: [[at(0, 'FLV')]] },
-  { id: 'mpeg', label: 'MPEG video', category: 'video', extensions: ['mpg', 'mpeg', 'm2ts', 'vob'],
+  { id: 'mpeg', label: 'MPEG video', category: 'video', extensions: ['mpg', 'mpeg', 'vob'],
     magic: [[hex(0, 0x00, 0x00, 0x01, 0xba)]] },
-  { id: 'ts', label: 'MPEG transport stream', category: 'video', extensions: ['ts'], magic: [] },
+  { id: 'ts', label: 'MPEG transport stream', category: 'video', extensions: ['m2ts', 'mts'],
+    magic: [
+      [hex(0, 0x47), hex(188, 0x47), hex(376, 0x47)],
+      [hex(4, 0x47), hex(196, 0x47), hex(388, 0x47)],
+    ] },
 
   // Binary and misc
   { id: 'exe', label: 'Windows executable', category: 'binary', extensions: ['exe', 'dll'], magic: [[at(0, 'MZ')]] },

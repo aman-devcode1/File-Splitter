@@ -31,7 +31,7 @@ Legend: ✅ tested in browser · 🟡 code ready, testing pending · ⬜ planned
 | video | MKV, WebM | By length | 🟡 |
 | video | AVI | By length | 🟡 |
 | video | FLV | By length | ✅ |
-| video | TS, M2TS | By length | 🟡 |
+| video | TS, M2TS | By length | ✅ |
 
 Sirf byte split wale formats: RAR, 7Z, GZIP, TAR, JSON, XML, HTML, code files, ISO, IMG, VHD, EXE, DLL, APK, fonts, SQLite, PSD, HEIC, aur koi bhi unknown file. Ye formats structure ke bina split nahi ho sakte, ya unka structure split karna fayda nahi deta.
 
