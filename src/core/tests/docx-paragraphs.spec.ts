@@ -2,7 +2,8 @@
 
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
-import { detectFile, modesFor, planParagraphs, splitFile, splitDocumentXml } from '../index';
+import { detectFile, modesFor, splitFile } from '../index';
+import { planParagraphs, splitDocumentXml } from '../documents/docx-paragraphs';
 
 const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
 

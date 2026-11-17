@@ -212,28 +212,46 @@ export const MODES: readonly ModeDefinition[] = [
   },
 ];
 
-const engines = new Map<EngineId, SplitEngine>();
+export type ItemCounter = (file: File, detected: DetectedFile) => Promise<number>;
 
-export type ItemCounter = (file: File) => Promise<number>;
+export interface EngineModule {
+  split(file: File, detected: DetectedFile, value: number): Promise<SplitPart[]>;
+  count?: ItemCounter;
+}
 
-const counters = new Map<EngineId, ItemCounter>();
+type Loader = () => Promise<EngineModule>;
 
-export function registerCounter(engine: EngineId, counter: ItemCounter): void {
-  counters.set(engine, counter);
+const loaders = new Map<EngineId, Loader>();
+const loaded = new Map<EngineId, EngineModule>();
+
+/** Registers how to load an engine. The engine's code is only loaded when it is first used. */
+export function registerLoader(engine: EngineId, load: Loader): void {
+  loaders.set(engine, load);
+}
+
+async function engineFor(id: EngineId): Promise<EngineModule> {
+  let m = loaded.get(id);
+  if (!m) {
+    const load = loaders.get(id);
+    if (!load) throw new Error(`Engine "${id}" is not registered.`);
+    m = await load();
+    loaded.set(id, m);
+  }
+  return m;
 }
 
 /**
  * Total items for a count mode (pages, files, lines, paragraphs, rows).
  * Returns null for byte and seconds modes, or when no counter is registered.
  */
-export async function itemTotal(mode: ModeDefinition, file: File): Promise<number | null> {
+export async function itemTotal(
+  mode: ModeDefinition,
+  file: File,
+  detected: DetectedFile,
+): Promise<number | null> {
   if (mode.input !== 'count') return null;
-  const counter = counters.get(mode.engine);
-  return counter ? counter(file) : null;
-}
-
-export function registerEngine(engine: SplitEngine): void {
-  engines.set(engine.id, engine);
+  const m = await engineFor(mode.engine);
+  return m.count ? m.count(file, detected) : null;
 }
 
 /**
@@ -242,7 +260,7 @@ export function registerEngine(engine: SplitEngine): void {
  * Every file still gets at least one mode.
  */
 export function modesFor(detected: DetectedFile): ModeDefinition[] {
-  const available = MODES.filter((m) => m.appliesTo(detected.kind) && engines.has(m.engine));
+  const available = MODES.filter((m) => m.appliesTo(detected.kind) && loaders.has(m.engine));
   const structured = available.filter((m) => m.id !== 'bytes');
 
   if (structured.length > 0 && BYTE_UNUSABLE_KINDS.includes(detected.kind.id)) {
@@ -299,9 +317,6 @@ export async function splitFile(
   if (!mode || !mode.appliesTo(detected.kind)) {
     throw new Error(`Mode "${modeId}" is not available for this file.`);
   }
-  const engine = engines.get(mode.engine);
-  if (!engine) {
-    throw new Error(`Engine "${mode.engine}" is not registered.`);
-  }
+  const engine = await engineFor(mode.engine);
   return engine.split(file, detected, value);
 }

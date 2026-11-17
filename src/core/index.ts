@@ -1,174 +1,112 @@
-import { registerCounter, registerEngine, type SplitEngine } from './registry';
-import { byteEngine } from './shared/byte-split';
-import { pdfPagesEngine, countPdfPages } from './documents/pdf-pages';
-import { docxParagraphsEngine, countParagraphs } from './documents/docx-paragraphs';
-import { xlsxRowsEngine, countRows } from './documents/xlsx-rows';
-import { zipEntriesEngine, countZipEntries } from './archives/zip-entries';
-import { textLinesEngine, countLines } from './text/text-lines';
-import { splitDiagonal, splitPercent, splitCount, countImageAxis } from './images/image-split';
-import { splitWav } from './audio/wav-split';
-import { splitMp3 } from './audio/mp3-split';
-import { splitMp4 } from './video/media-time';
-import { splitFragmentedToRegular } from './video/mp4-regular';
-import { topLevelBoxes } from './video/mp4';
-import { splitFlac } from './audio/flac-split';
-import { splitOgg } from './audio/ogg-split';
-import { splitMkv } from './video/matroska';
-import { splitAvi } from './video/avi';
-import { countEpubChapters, splitEpubChapters } from './documents/epub-chapters';
-import { countPptxSlides, splitPptxSlides } from './documents/pptx-slides';
-import { countOdf, splitOdf } from './documents/odf';
-import { detectFile } from './detect/detect';
-import { countSubtitleCues, splitSubtitleCues } from './text/subtitle-cues';
-import { splitFlv } from './video/flv';
-import { splitTs } from './video/mpeg-ts';
+import { registerLoader } from './registry';
 
-registerEngine({
-  id: 'byte',
-  split: (file, _detected, partSize) => byteEngine.split(file, partSize),
-} satisfies SplitEngine);
+registerLoader('byte', async () => {
+  const m = await import('./shared/byte-split');
+  return { split: (file, _d, partSize) => m.byteEngine.split(file, partSize) };
+});
 
-registerEngine({
-  id: 'pdf-pages',
-  split: (file, detected, n) => pdfPagesEngine.split(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('pdf-pages', async () => {
+  const m = await import('./documents/pdf-pages');
+  return { split: (f, d, n) => m.pdfPagesEngine.split(f, d, n), count: m.countPdfPages };
+});
 
-registerEngine({
-  id: 'zip-entries',
-  split: (file, detected, n) => zipEntriesEngine.split(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('zip-entries', async () => {
+  const m = await import('./archives/zip-entries');
+  return { split: (f, d, n) => m.zipEntriesEngine.split(f, d, n), count: m.countZipEntries };
+});
 
-registerEngine({
-  id: 'text-lines',
-  split: (file, detected, n) => textLinesEngine.split(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('text-lines', async () => {
+  const m = await import('./text/text-lines');
+  return { split: (f, d, n) => m.textLinesEngine.split(f, d, n), count: m.countLines };
+});
 
-registerEngine({
-  id: 'subtitle-cues',
-  split: (file, _detected, n) => splitSubtitleCues(file, n),
-} satisfies SplitEngine);
+registerLoader('docx-paragraphs', async () => {
+  const m = await import('./documents/docx-paragraphs');
+  return { split: (f, d, n) => m.docxParagraphsEngine.split(f, d, n), count: m.countParagraphs };
+});
 
-registerEngine({
-  id: 'docx-paragraphs',
-  split: (file, detected, n) => docxParagraphsEngine.split(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('xlsx-rows', async () => {
+  const m = await import('./documents/xlsx-rows');
+  return { split: (f, d, n) => m.xlsxRowsEngine.split(f, d, n), count: m.countRows };
+});
 
-registerEngine({
-  id: 'xlsx-rows',
-  split: (file, detected, n) => xlsxRowsEngine.split(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('pptx-slides', async () => {
+  const m = await import('./documents/pptx-slides');
+  return { split: (f, _d, n) => m.splitPptxSlides(f, n), count: m.countPptxSlides };
+});
 
-registerEngine({
-  id: 'pptx-slides',
-  split: (file, _detected, n) => splitPptxSlides(file, n),
-} satisfies SplitEngine);
+registerLoader('epub-chapters', async () => {
+  const m = await import('./documents/epub-chapters');
+  return { split: (f, _d, n) => m.splitEpubChapters(f, n), count: m.countEpubChapters };
+});
 
-registerEngine({
-  id: 'epub-chapters',
-  split: (file, _detected, n) => splitEpubChapters(file, n),
-} satisfies SplitEngine);
+registerLoader('odf', async () => {
+  const m = await import('./documents/odf');
+  return { split: (f, d, n) => m.splitOdf(f, d, n), count: (f, d) => m.countOdf(f, d) };
+});
 
-registerEngine({
-  id: 'odf',
-  split: (file, detected, n) => splitOdf(file, detected, n),
-} satisfies SplitEngine);
+registerLoader('subtitle-cues', async () => {
+  const m = await import('./text/subtitle-cues');
+  return { split: (f, _d, n) => m.splitSubtitleCues(f, n), count: m.countSubtitleCues };
+});
 
-registerEngine({
-  id: 'image-diag-tlbr',
-  split: (file) => splitDiagonal(file, 'tl-br'),
-} satisfies SplitEngine);
+registerLoader('image-diag-tlbr', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f) => m.splitDiagonal(f, 'tl-br') };
+});
 
-registerEngine({
-  id: 'image-diag-trbl',
-  split: (file) => splitDiagonal(file, 'tr-bl'),
-} satisfies SplitEngine);
+registerLoader('image-diag-trbl', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f) => m.splitDiagonal(f, 'tr-bl') };
+});
 
-registerEngine({
-  id: 'image-h-percent',
-  split: (file, detected, p) => splitPercent(file, detected, 'horizontal', p),
-} satisfies SplitEngine);
+registerLoader('image-h-percent', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f, d, p) => m.splitPercent(f, d, 'horizontal', p) };
+});
 
-registerEngine({
-  id: 'image-h-count',
-  split: (file, detected, n) => splitCount(file, detected, 'horizontal', n),
-} satisfies SplitEngine);
+registerLoader('image-h-count', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f, d, n) => m.splitCount(f, d, 'horizontal', n), count: (f) => m.countImageAxis(f, 'horizontal') };
+});
 
-registerEngine({
-  id: 'image-v-percent',
-  split: (file, detected, p) => splitPercent(file, detected, 'vertical', p),
-} satisfies SplitEngine);
+registerLoader('image-v-percent', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f, d, p) => m.splitPercent(f, d, 'vertical', p) };
+});
 
-registerEngine({
-  id: 'image-v-count',
-  split: (file, detected, n) => splitCount(file, detected, 'vertical', n),
-} satisfies SplitEngine);
+registerLoader('image-v-count', async () => {
+  const m = await import('./images/image-split');
+  return { split: (f, d, n) => m.splitCount(f, d, 'vertical', n), count: (f) => m.countImageAxis(f, 'vertical') };
+});
 
-registerEngine({
-  id: 'media-time',
+registerLoader('media-time', async () => ({
   split: async (file, detected, seconds) => {
     switch (detected.kind.id) {
-      case 'wav':
-        return splitWav(file, seconds);
-      case 'mp3':
-        return splitMp3(file, seconds);
-      case 'flac':
-        return splitFlac(file, seconds);
-      case 'ogg':
-        return splitOgg(file, seconds);
+      case 'wav': return (await import('./audio/wav-split')).splitWav(file, seconds);
+      case 'mp3': return (await import('./audio/mp3-split')).splitMp3(file, seconds);
+      case 'flac': return (await import('./audio/flac-split')).splitFlac(file, seconds);
+      case 'ogg': return (await import('./audio/ogg-split')).splitOgg(file, seconds);
       case 'mkv':
-      case 'webm':
-        return splitMkv(file, seconds);
-      case 'avi':
-        return splitAvi(file, seconds);
-      case 'flv':
-        return splitFlv(file, seconds);
-      case 'ts':
-        return splitTs(file, seconds);
+      case 'webm': return (await import('./video/matroska')).splitMkv(file, seconds);
+      case 'avi': return (await import('./video/avi')).splitAvi(file, seconds);
+      case 'flv': return (await import('./video/flv')).splitFlv(file, seconds);
+      case 'ts': return (await import('./video/mpeg-ts')).splitTs(file, seconds);
       default: {
-        const isFragmented = (await topLevelBoxes(file)).some((b) => b.type === 'moof');
-        return isFragmented ? splitFragmentedToRegular(file, seconds) : splitMp4(file, seconds);
+        const mp4 = await import('./video/mp4');
+        const isFragmented = (await mp4.topLevelBoxes(file)).some((b) => b.type === 'moof');
+        return isFragmented
+          ? (await import('./video/mp4-regular')).splitFragmentedToRegular(file, seconds)
+          : (await import('./video/media-time')).splitMp4(file, seconds);
       }
     }
   },
-} satisfies SplitEngine);
-
-registerCounter('pdf-pages', countPdfPages);
-registerCounter('zip-entries', countZipEntries);
-registerCounter('text-lines', countLines);
-registerCounter('subtitle-cues', countSubtitleCues);
-registerCounter('docx-paragraphs', countParagraphs);
-registerCounter('xlsx-rows', countRows);
-registerCounter('pptx-slides', countPptxSlides);
-registerCounter('epub-chapters', countEpubChapters);
-registerCounter('odf', async (file) => countOdf(file, await detectFile(file)));
-registerCounter('image-h-count', (file) => countImageAxis(file, 'horizontal'));
-registerCounter('image-v-count', (file) => countImageAxis(file, 'vertical'));
+}));
 
 export * from './types';
 export * from './detect/detect';
 export * from './registry';
 export * from './shared/byte-split';
 export * from './shared/cut-plan';
-export * from './documents/pdf-pages';
-export * from './documents/docx-paragraphs';
-export * from './documents/xlsx-rows';
-export * from './documents/pptx-slides';
-export * from './documents/epub-chapters';
-export * from './documents/odf';
-export * from './archives/zip-entries';
-export * from './text/text-lines';
-export * from './text/subtitle-cues';
-export * from './images/image-split';
-export * from './audio/wav-split';
-export * from './audio/mp3-split';
-export * from './audio/flac-split';
-export * from './audio/ogg-split';
-export * from './video/media-time';
-export * from './video/mp4-regular';
-export * from './video/mp4-fragmented';
-export * from './video/matroska';
-export * from './video/avi';
-export * from './video/flv';
-export * from './video/mpeg-ts';
 export * from './duration';
 export * from './estimate';

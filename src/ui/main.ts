@@ -12,7 +12,6 @@ import {
     type SplitPart,
     formatClock,
     mediaDuration,
-    oggCodec,
 } from '../core';
 import type { ByteUnit } from '../core/shared/byte-split';
 
@@ -271,7 +270,7 @@ async function onModeChanged(): Promise<void> {
         const f = file;
         let t: number | null = null;
         try {
-            t = await itemTotal(mode, f);
+            t = await itemTotal(mode, file, detected!);
         } catch {
             t = null;
         }
@@ -408,6 +407,7 @@ async function loadFile(f: File): Promise<void> {
 
     if (d.kind.id === 'ogg' && id === runId) {
         try {
+            const { oggCodec } = await import('../core/audio/ogg-split');
             const codec = await oggCodec(f);
             els.codecTip.hidden = codec !== 'vorbis';
             els.codecTip.textContent =

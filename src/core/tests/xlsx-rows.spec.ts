@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
-import { detectFile, modesFor, planRows, splitFile } from '../index';
+import { detectFile, modesFor, splitFile } from '../index';
+import { planRows } from '../documents/xlsx-rows';
 
 const MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';

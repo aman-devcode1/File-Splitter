@@ -1,7 +1,6 @@
 import { PDFDocument } from 'pdf-lib';
 import type { DetectedFile, SplitPart } from '../types';
 import { partFileName } from '../shared/byte-split';
-import { registerCounter } from '../registry';
 
 export interface PageRange {
     readonly index: number;
@@ -87,5 +86,3 @@ export async function countPdfPages(file: File): Promise<number> {
   const doc = await PDFDocument.load(await file.arrayBuffer());
   return doc.getPageCount();
 }
-
-registerCounter('pdf-pages', countPdfPages);

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { PDFDocument } from 'pdf-lib';
-import { detectFile, modesFor, planPages, splitFile } from '../index';
+import { detectFile, modesFor, splitFile } from '../index';
+import { planPages } from '../documents/pdf-pages';
 
 async function makePdf(pages: number): Promise<File> {
   const doc = await PDFDocument.create();

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import JSZip from 'jszip';
-import { detectFile, modesFor, planEntries, splitFile } from '../index';
+import { detectFile, modesFor, splitFile } from '../index';
+import { planEntries } from '../archives/zip-entries';
 
 async function makeZip(count: number): Promise<File> {
   const zip = new JSZip();

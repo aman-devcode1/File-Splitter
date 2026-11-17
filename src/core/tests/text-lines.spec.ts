@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { detectFile, modesFor, planLines, splitFile, splitLines } from '../index';
+import { detectFile, modesFor, splitFile } from '../index';
+import { planLines, splitLines } from '../text/text-lines';
 
 const sample = Array.from({ length: 7 }, (_, i) => `line ${i + 1}\n`).join('');
 

@@ -10,38 +10,40 @@ import { flvDuration } from './video/flv';
 import { tsDuration } from './video/mpeg-ts';
 
 async function mp4Duration(file: File): Promise<number | null> {
-  const top = await topLevelBoxes(file);
-  const moov = findBox(top, 'moov');
+  const mp4 = await import('./video/mp4');
+  const frag = await import('./video/mp4-fragmented');
+  const top = await mp4.topLevelBoxes(file);
+  const moov = mp4.findBox(top, 'moov');
   const bytes = new Uint8Array(await file.slice(moov.start, moov.end).arrayBuffer());
-  const movie = parseMoov(bytes, moov.headerSize);
+  const movie = mp4.parseMoov(bytes, moov.headerSize);
   const view = new DataView(movie.mvhd.buffer, movie.mvhd.byteOffset, movie.mvhd.byteLength);
   const version = view.getUint8(8);
   const duration = version === 1 ? Number(view.getBigUint64(32)) : view.getUint32(24);
 
   if (duration === 0) {
     const video = movie.tracks.find((t) => t.handler === 'vide') ?? movie.tracks[0];
-    const frags = await scanFragments(file, video);
+    const frags = await frag.scanFragments(file, video);
     const last = frags[frags.length - 1];
     return last ? last.time + last.dur : null;
   }
   return movie.timescale > 0 ? duration / movie.timescale : null;
 }
 
-/** Total seconds for MP4/MOV/M4A, WAV, MP3. Returns null if it cannot be read. */
+/** Total seconds for each media type. Returns null if it cannot be read. */
 export async function mediaDuration(file: File, kindId: string): Promise<number | null> {
   try {
-    if (kindId === 'wav') return await wavDuration(file);
-    if (kindId === 'mp3') return (await readMp3(file)).duration;
-    if (kindId === 'flac') return (await readFlac(file)).duration;
-    if (kindId === 'ogg') return await oggDuration(file);
-    if (kindId === 'mkv' || kindId === 'webm') return await mkvDuration(file);
-        if (kindId === 'avi') {
-      const info = await readAvi(file);
+    if (kindId === 'wav') return await (await import('./audio/wav-split')).wavDuration(file);
+    if (kindId === 'mp3') return (await (await import('./audio/mp3-split')).readMp3(file)).duration;
+    if (kindId === 'flac') return (await (await import('./audio/flac-split')).readFlac(file)).duration;
+    if (kindId === 'ogg') return await (await import('./audio/ogg-split')).oggDuration(file);
+    if (kindId === 'mkv' || kindId === 'webm') return await (await import('./video/matroska')).mkvDuration(file);
+    if (kindId === 'flv') return await (await import('./video/flv')).flvDuration(file);
+    if (kindId === 'ts') return await (await import('./video/mpeg-ts')).tsDuration(file);
+    if (kindId === 'avi') {
+      const info = await (await import('./video/avi')).readAvi(file);
       const frames = info.chunks.filter((c) => c.id.startsWith(info.videoStream)).length;
       return frames / info.fps;
     }
-    if (kindId === 'flv') return await flvDuration(file);
-    if (kindId === 'ts') return await tsDuration(file);
     return await mp4Duration(file);
   } catch {
     return null;

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { detectFile, modesFor, MODES, parseModeInput, percentBands, equalBands, diagonalTriangles } from '../index';
+import { detectFile, modesFor, MODES, parseModeInput } from '../index';
+import { diagonalTriangles, equalBands, percentBands } from '../images/image-split';
 
 describe('percent bands', () => {
   it('gives the first part the percent and the rest to the second', () => {

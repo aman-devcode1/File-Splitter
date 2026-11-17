@@ -19,7 +19,7 @@ describe('count limit', () => {
   it('reports the page total of a PDF', async () => {
     const f = await makePdf(4);
     const mode = MODES.find((m) => m.id === 'pdf-pages')!;
-    expect(await itemTotal(mode, f)).toBe(4);
+    expect(await itemTotal(mode, f, await detectFile(f))).toBe(4);
   });
 
   it('4 pages in 3 per part gives 2 parts (3 and 1)', async () => {
