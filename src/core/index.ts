@@ -20,6 +20,7 @@ import { countPptxSlides, splitPptxSlides } from './documents/pptx-slides';
 import { countOdf, splitOdf } from './documents/odf';
 import { detectFile } from './detect/detect';
 import { countSubtitleCues, splitSubtitleCues } from './text/subtitle-cues';
+import { splitFlv } from './video/flv';
 
 registerEngine({
   id: 'byte',
@@ -118,6 +119,8 @@ registerEngine({
         return splitMkv(file, seconds);
       case 'avi':
         return splitAvi(file, seconds);
+      case 'flv':
+        return splitFlv(file, seconds);
       default: {
         const isFragmented = (await topLevelBoxes(file)).some((b) => b.type === 'moof');
         return isFragmented ? splitFragmentedToRegular(file, seconds) : splitMp4(file, seconds);
@@ -162,5 +165,6 @@ export * from './video/mp4-regular';
 export * from './video/mp4-fragmented';
 export * from './video/matroska';
 export * from './video/avi';
+export * from './video/flv';
 export * from './duration';
 export * from './estimate';

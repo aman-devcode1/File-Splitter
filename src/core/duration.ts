@@ -6,6 +6,7 @@ import { readFlac } from './audio/flac-split';
 import { oggDuration } from './audio/ogg-split';
 import { mkvDuration } from './video/matroska';
 import { readAvi } from './video/avi';
+import { flvDuration } from './video/flv';
 
 async function mp4Duration(file: File): Promise<number | null> {
   const top = await topLevelBoxes(file);
@@ -38,6 +39,7 @@ export async function mediaDuration(file: File, kindId: string): Promise<number 
       const frames = info.chunks.filter((c) => c.id.startsWith(info.videoStream)).length;
       return frames / info.fps;
     }
+    if (kindId === 'flv') return await flvDuration(file);
     return await mp4Duration(file);
   } catch {
     return null;

@@ -46,6 +46,11 @@ describe('modes per format (regression)', () => {
     const f = new File([new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0])], 'a.mkv');
     expect(await modeIds(f)).toEqual(['media-time']);
   });
+
+  it('FLV offers length clips only', async () => {
+    const f = new File([new Uint8Array([0x46, 0x4c, 0x56, 1, 5, 0, 0, 0, 9, 0, 0, 0, 0])], 'x.flv');
+    expect(await modeIds(f)).toEqual(['media-time']);
+  });
 });
 
 describe('input limits (regression)', () => {
