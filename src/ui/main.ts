@@ -82,6 +82,8 @@ const countLabels: Record<string, string> = {
     'epub-chapters': 'Chapters per part',
     'odf': 'Items per part',
     'subtitle-cues': 'Cues per part',
+    'csv-rows': 'Rows per part',
+    'archive-entries': 'Files per part',
 };
 
 const countNouns: Record<string, string> = {
@@ -94,6 +96,8 @@ const countNouns: Record<string, string> = {
     'epub-chapters': 'chapters',
     'odf': 'items',
     'subtitle-cues': 'cues',
+    'csv-rows': 'rows',
+    'archive-entries': 'files',
 };
 
 const BYTE_PRESETS: Preset[] = [
