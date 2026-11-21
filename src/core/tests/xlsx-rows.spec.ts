@@ -77,14 +77,11 @@ describe('xlsx-rows engine', () => {
     expect(modesFor(d).map((m) => m.id)).toContain('xlsx-rows');
   });
 
-  it('splits every sheet by the same row range', async () => {
+  it('splits every sheet by the same data row range, with the header in every part', async () => {
+    // Sheet 1 has 4 data rows and sheet 2 has 2. The total is 4, so 2 parts of 2 rows.
     const parts = await splitBook([5, 3], 2);
 
-    expect(parts.map((p) => p.name)).toEqual([
-      'book_PART001.xlsx',
-      'book_PART002.xlsx',
-      'book_PART003.xlsx',
-    ]);
+    expect(parts.map((p) => p.name)).toEqual(['book_PART001.xlsx', 'book_PART002.xlsx']);
 
     const counts: [number, number][] = [];
     for (const p of parts) {
@@ -92,33 +89,33 @@ describe('xlsx-rows engine', () => {
       const s2 = (await xmlOf(p.blob, 'xl/worksheets/sheet2.xml')).match(/<row\b/g)?.length ?? 0;
       counts.push([s1, s2]);
     }
+    // Each row count includes the header row.
     expect(counts).toEqual([
-      [2, 2],
-      [2, 1],
-      [1, 0],
+      [3, 3],
+      [3, 1],
     ]);
   });
 
-  it('keeps the original row numbers so cell references still match', async () => {
+  it('renumbers rows and cells from row 1 in each part, and repeats the header', async () => {
     const parts = await splitBook([5], 2);
     const xml = await xmlOf(parts[1].blob, 'xl/worksheets/sheet1.xml');
-    expect(xml).toContain('<row r="3">');
-    expect(xml).toContain('r="A3"');
+
+    expect(xml).toContain('<row r="1"><c r="A1" t="inlineStr"><is><t>S1R1</t></is></c></row>');
+    expect(xml).toContain('<row r="3"><c r="A3" t="inlineStr"><is><t>S1R5</t></is></c></row>');
   });
 
-  it('keeps only the merged cells that start inside each part', async () => {
+  it('keeps only the merged cells that are inside each part', async () => {
     const parts = await splitBook([5], 2);
 
+    // Part 1 has data rows 2 and 3 of the original, so A3:B3 is inside it.
     const first = await xmlOf(parts[0].blob, 'xl/worksheets/sheet1.xml');
     expect(first).toContain('ref="A1:B1"');
-    expect(first).not.toContain('ref="A3:B3"');
+    expect(first).toContain('ref="A3:B3"');
 
+    // Part 2 has data rows 4 and 5, so A3:B3 is dropped. The header merge stays.
     const second = await xmlOf(parts[1].blob, 'xl/worksheets/sheet1.xml');
-    expect(second).toContain('ref="A3:B3"');
-    expect(second).not.toContain('ref="A1:B1"');
-
-    const third = await xmlOf(parts[2].blob, 'xl/worksheets/sheet1.xml');
-    expect(third).not.toContain('<mergeCells');
+    expect(second).toContain('ref="A1:B1"');
+    expect(second).not.toContain('ref="A3:B3"');
   });
 
   it('removes calcChain so Excel does not ask to repair the file', async () => {

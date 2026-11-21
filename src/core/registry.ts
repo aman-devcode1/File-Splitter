@@ -19,7 +19,10 @@ export type EngineId =
   | 'pptx-slides'
   | 'epub-chapters'
   | 'odf'
-  | 'subtitle-cues';
+  | 'subtitle-cues'
+  | 'csv-rows'
+  | 'archive-entries'
+  ;
 
 /** What the user has to type for this mode. 'none' means no input at all. */
 export type InputKind = 'bytes' | 'count' | 'seconds' | 'percent' | 'none';
@@ -46,11 +49,12 @@ const ZIP_ENTRY_KINDS = ['zip', 'epub', 'odf', 'pptx'];
 const BYTE_UNUSABLE_KINDS = [
   'pdf', 'zip', 'docx', 'xlsx', 'pptx', 'epub', 'odf',
   'png', 'jpeg', 'webp', 'gif', 'bmp',
-  'mp4', 'mov', 'm4a', 'wav', 'mp3', 'flac', 'ogg', 'mkv', 'webm', 'avi', '3gp', 'flv', 'ts', 'mpeg',
+  'mp4', 'm4v', 'mov', 'm4a', 'wav', 'mp3', 'flac', 'ogg', 'mkv', 'webm', 'avi', '3gp', 'flv', 'ts', 'mpeg',
+  'subtitle', '7z', 'rar', 'tar',
 ];
 const TEXT_LINE_KINDS = ['text', 'csv'];
 const IMAGE_KINDS = ['png', 'jpeg', 'webp', 'gif', 'bmp'];
-const MEDIA_KINDS = ['mp4', 'mov', 'm4a', 'wav', 'mp3', 'flac', 'ogg', 'mkv', 'webm', 'avi', '3gp', 'flv', 'ts', 'mpeg'];
+const MEDIA_KINDS = ['mp4', 'm4v', 'mov', 'm4a', 'wav', 'mp3', 'flac', 'ogg', 'mkv', 'webm', 'avi', '3gp', 'flv', 'ts', 'mpeg'];
 
 /** Every mode the product knows about. Byte split is always first and applies to every file. */
 export const MODES: readonly ModeDefinition[] = [
@@ -126,6 +130,24 @@ export const MODES: readonly ModeDefinition[] = [
     input: 'count',
     defaultValue: '1000',
     appliesTo: (k) => TEXT_LINE_KINDS.includes(k.id),
+  },
+    {
+    id: 'csv-rows',
+    label: 'By rows (header in every part)',
+    help: 'Each part is a complete CSV file with this many data rows. The header row is copied into every part.',
+    engine: 'csv-rows',
+    input: 'count',
+    defaultValue: '1000',
+    appliesTo: (k) => k.id === 'csv',
+  },
+    {
+    id: 'archive-entries',
+    label: 'By files inside',
+    help: 'Each part is a complete ZIP file with this many files. Folder structure is kept. 7-Zip, RAR and TAR parts are saved as ZIP.',
+    engine: 'archive-entries',
+    input: 'count',
+    defaultValue: '5',
+    appliesTo: (k) => ['7z', 'rar', 'tar'].includes(k.id),
   },
   {
     id: 'subtitle-cues',

@@ -1,9 +1,9 @@
 import { registerLoader } from './registry';
+import { byteEngine } from './shared/byte-split';
 
-registerLoader('byte', async () => {
-  const m = await import('./shared/byte-split');
-  return { split: (file, _d, partSize) => m.byteEngine.split(file, partSize) };
-});
+registerLoader('byte', async () => ({
+  split: (file, _d, partSize) => byteEngine.split(file, partSize),
+}));
 
 registerLoader('pdf-pages', async () => {
   const m = await import('./documents/pdf-pages');
@@ -18,6 +18,16 @@ registerLoader('zip-entries', async () => {
 registerLoader('text-lines', async () => {
   const m = await import('./text/text-lines');
   return { split: (f, d, n) => m.textLinesEngine.split(f, d, n), count: m.countLines };
+});
+
+registerLoader('csv-rows', async () => {
+  const m = await import('./text/csv-rows');
+  return { split: (f, d, n) => m.csvRowsEngine.split(f, d, n), count: m.countCsvRows };
+});
+
+registerLoader('archive-entries', async () => {
+  const m = await import('./archives/archive-entries');
+  return { split: (f, d, n) => m.archiveEntriesEngine.split(f, d, n), count: m.countArchiveEntries };
 });
 
 registerLoader('docx-paragraphs', async () => {

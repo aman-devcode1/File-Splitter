@@ -63,6 +63,7 @@ export const FILE_KINDS: readonly FileKind[] = [
     magic: [[at(4, 'ftyp'), at(8, 'qt  ')]] },
   { id: '3gp', label: '3GP video', category: 'video', extensions: ['3gp', '3g2'],
     magic: [[at(4, 'ftyp'), at(8, '3gp')], [at(4, 'ftyp'), at(8, '3g2')]] },
+  { id: 'm4v', label: 'M4V video', category: 'video', extensions: ['m4v'], magic: [[at(8, 'M4V ')], [at(8, 'M4VH')]] },
   { id: 'mp4', label: 'MP4 video', category: 'video', extensions: ['mp4', 'm4v'], magic: [[at(4, 'ftyp')]] },
   { id: 'avi', label: 'AVI video', category: 'video', extensions: ['avi'], magic: [[at(0, 'RIFF'), at(8, 'AVI ')]] },
   { id: 'mkv', label: 'Matroska video', category: 'video', extensions: ['mkv'], magic: [[hex(0, 0x1a, 0x45, 0xdf, 0xa3)]] },
